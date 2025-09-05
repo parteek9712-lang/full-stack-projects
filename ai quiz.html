@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Quiz Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .quiz-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .quiz-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .option {
+            transition: all 0.2s ease;
+        }
+
+        .option:hover {
+            background-color: #e2e8f0;
+        }
+
+        .option.selected {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .option.correct {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .option.incorrect {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+
+        #loading-spinner {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="mb-12 text-center">
+            <img src="https://placehold.co/600x200" alt="AI Quiz Generator logo featuring a futuristic brain with digital circuit patterns on a dark blue background" class="mx-auto mb-6 rounded-lg">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">AI Quiz Generator</h1>
+            <p class="text-xl text-gray-600">Create custom quizzes powered by artificial intelligence</p>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Quiz Configuration Section -->
+            <section id="config-section" class="bg-white rounded-xl quiz-card p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">Quiz Settings</h2>
+                <form id="quiz-config" class="space-y-6">
+                    <div>
+                        <label for="quiz-topic" class="block text-sm font-medium text-gray-700 mb-1">Quiz Topic</label>
+                        <input type="text" id="quiz-topic" placeholder="e.g., World History, JavaScript, Biology..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="quiz-number" class="block text-sm font-medium text-gray-700 mb-1">Number of Questions</label>
+                        <select id="quiz-number"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="quiz-difficulty" class="block text-sm font-medium text-gray-700 mb-1">Difficulty Level</label>
+                        <select id="quiz-difficulty"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" id="generate-btn"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200">
+                            Generate Quiz
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Loading Indicator -->
+            <div id="loading-spinner" class="flex justify-center items-center py-12">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+            </div>
+
+            <!-- Quiz Display Section (initially hidden) -->
+            <section id="quiz-section" class="hidden bg-white rounded-xl quiz-card p-8 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="quiz-title" class="text-2xl font-semibold text-gray-800">Quiz on <span id="current-topic"></span></h2>
+                    <div class="text-lg font-medium text-gray-700">
+                        Score: <span id="score-display">0</span>/<span id="total-questions"></span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-8">
+                    <div id="progress-bar" class="progress-bar bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+
+                <!-- Question Container -->
+                <div id="question-container">
+                    <!-- Questions will be dynamically inserted here -->
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="flex justify-between mt-8">
+                    <button id="prev-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-md transition duration-200">
+                        Previous
+                    </button>
+                    <button id="next-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition duration-200">
+                        Next
+                    </button>
+                    <button id="submit-btn" class="hidden bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md transition duration-200">
+                        Submit Quiz
+                    </button>
+                </div>
+            </section>
+
+            <!-- Results Section (initially hidden) -->
+            <section id="results-section" class="hidden bg-white rounded-xl quiz-card p-8 mb-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Quiz Results</h2>
+                    <div class="text-xl mb-6">Your score: <span id="final-score" class="font-bold">0</span>/<span id="final-total">0</span></div>
+                    
+                    <div class="flex justify-center mb-8">
+                        <svg id="result-circle" width="200" height="200" viewBox="0 0 200 200" class="transform -rotate-90">
+                            <circle cx="100" cy="100" r="90" fill="none" stroke="#e2e8f0" stroke-width="10" />
+                            <circle id="result-circle-progress" cx="100" cy="100" r="90" fill="none" stroke="#10b981" stroke-width="10" stroke-dasharray="565.4866776461628" stroke-dashoffset="565.4866776461628" stroke-linecap="round" />
+                            <text id="result-percentage" x="100" y="110" text-anchor="middle" font-size="36" font-weight="bold" fill="#1e293b" transform="rotate(90 100,100)">0%</text>
+                        </svg>
+                    </div>
+
+                    <div id="result-message" class="text-lg text-gray-700 mb-8">
+                        <!-- Dynamic result message will go here -->
+                    </div>
+
+                    <button id="new-quiz-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition duration-200">
+                        Start New Quiz
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Quiz Data and State Management
+        const quizState = {
+            currentQuestionIndex: 0,
+            score: 0,
+            quizData: [],
+            userAnswers: [],
+            quizTopic: '',
+            totalQuestions: 0
+        };
+
+        // DOM Elements
+        const configSection = document.getElementById('config-section');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const quizSection = document.getElementById('quiz-section');
+        const resultsSection = document.getElementById('results-section');
+        const quizForm = document.getElementById('quiz-config');
+        const quizTitle = document.getElementById('quiz-title');
+        const currentTopic = document.getElementById('current-topic');
+        const scoreDisplay = document.getElementById('score-display');
+        const totalQuestionsDisplay = document.getElementById('total-questions');
+        const questionContainer = document.getElementById('question-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const finalScore = document.getElementById('final-score');
+        const finalTotal = document.getElementById('final-total');
+        const resultCircleProgress = document.getElementById('result-circle-progress');
+        const resultPercentage = document.getElementById('result-percentage');
+        const resultMessage = document.getElementById('result-message');
+        const newQuizBtn = document.getElementById('new-quiz-btn');
+
+        // Initialize the application
+        function init() {
+            // Event listeners
+            quizForm.addEventListener('submit', handleQuizGeneration);
+            prevBtn.addEventListener('click', handlePreviousQuestion);
+            nextBtn.addEventListener('click', handleNextQuestion);
+            submitBtn.addEventListener('click', handleQuizSubmission);
+            newQuizBtn.addEventListener('click', resetQuiz);
+
+            // Initialize UI
+            prevBtn.disabled = true;
+        }
+
+        // Handle quiz generation form submission
+        function handleQuizGeneration(e) {
+            e.preventDefault();
+            
+            const topic = document.getElementById('quiz-topic').value.trim();
+            const questionCount = parseInt(document.getElementById('quiz-number').value);
+            const difficulty = document.getElementById('quiz-difficulty').value;
+            
+            if (!topic) {
+                alert('Please enter a quiz topic');
+                return;
+            }
+
+            // Show loading spinner
+            configSection.classList.add('hidden');
+            loadingSpinner.style.display = 'flex';
+
+            // Simulate API call with setTimeout (in a real app, this would be an actual API call)
+            setTimeout(() => {
+                generateQuiz(topic, questionCount, difficulty);
+                loadingSpinner.style.display = 'none';
+                quizSection.classList.remove('hidden');
+            }, 1500);
+        }
+
+        // Generate quiz questions (simulated AI response)
+        function generateQuiz(topic, questionCount, difficulty) {
+            quizState.quizTopic = topic;
+            quizState.totalQuestions = questionCount;
+            quizState.quizData = [];
+            quizState.userAnswers = Array(questionCount).fill(null);
+            quizState.currentQuestionIndex = 0;
+            quizState.score = 0;
+
+            // This would be replaced with actual AI API calls in production
+            for (let i = 0; i < questionCount; i++) {
+                quizState.quizData.push(generateQuestion(topic, difficulty, i));
+            }
+
+            // Update UI
+            currentTopic.textContent = topic;
+            totalQuestionsDisplay.textContent = questionCount;
+            updateScore();
+
+            renderCurrentQuestion();
+            updateNavigationButtons();
+        }
+
+        // Generate a single question (simulated AI)
+        function generateQuestion(topic, difficulty, index) {
+            const difficultyLevels = {
+                easy: { options: 3, complexity: 'basic' },
+                medium: { options: 4, complexity: 'intermediate' },
+                hard: { options: 5, complexity: 'advanced' }
+            };
+
+            const config = difficultyLevels[difficulty];
+            const questionNumber = index + 1;
+            const options = [];
+
+            // Generate options
+            for (let i = 0; i < config.options; i++) {
+                options.push({
+                    id: i,
+                    text: `Option ${i + 1} for ${topic} ${config.complexity} question`
+                });
+            }
+
+            // Select a random correct answer
+            const correctAnswer = Math.floor(Math.random() * config.options);
+
+            return {
+                id: index,
+                question: `${questionNumber}. What is the ${config.complexity} concept about ${topic}?`,
+                options: options,
+                correctAnswer: correctAnswer,
+                explanation: `This explanation demonstrates why option ${correctAnswer + 1} is correct for this ${difficulty} level question about ${topic}.`
+            };
+        }
+
+        // Render the current question
+        function renderCurrentQuestion() {
+            const currentQuestion = quizState.quizData[quizState.currentQuestionIndex];
+            const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
+
+            // Clear previous question
+            questionContainer.innerHTML = '';
+
+            // Create question element
+            const questionElement = document.createElement('div');
+            questionElement.className = 'mb-6';
+            questionElement.innerHTML = `
+                <h3 class="text-xl font-medium text-gray-800 mb-6">${currentQuestion.question}</h3>
+                <div id="options-container" class="space-y-3">
+                    ${currentQuestion.options.map(option => `
+                        <div 
+                            id="option-${option.id}" 
+                            class="option p-4 border border-gray-300 rounded-md cursor-pointer ${userAnswer === option.id ? 'selected' : ''}"
+                            data-option-id="${option.id}"
+                        >
+                            ${option.text}
+                        </div>
+                    `).join('')}
+                </div>
+                ${userAnswer !== null ? `
+                <div id="explanation" class="mt-6 p-4 bg-blue-50 rounded-md">
+                    <p class="font-medium text-blue-800">Explanation:</p>
+                    <p class="text-blue-700">${currentQuestion.explanation}</p>
+                </div>
+                ` : ''}
+            `;
+
+            questionContainer.appendChild(questionElement);
+
+            // Add event listeners to options if not already answered
+            if (userAnswer === null) {
+                document.querySelectorAll('.option').forEach(option => {
+                    option.addEventListener('click', handleOptionSelection);
+                });
+            }
+
+            // Update progress bar
+            updateProgressBar();
+        }
+
+        // Handle option selection
+        function handleOptionSelection(e) {
+            const optionId = parseInt(e.currentTarget.getAttribute('data-option-id'));
+            quizState.userAnswers[quizState.currentQuestionIndex] = optionId;
+
+            // Check if answer is correct
+            const currentQuestion = quizState.quizData[quizState.currentQuestionIndex];
+            if (optionId === currentQuestion.correctAnswer) {
+                quizState.score++;
+                updateScore();
+            }
+
+            // Highlight selected option
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected', 'correct', 'incorrect');
+            });
+
+            const selectedOption = document.getElementById(`option-${optionId}`);
+            selectedOption.classList.add('selected');
+
+            if (optionId === currentQuestion.correctAnswer) {
+                selectedOption.classList.add('correct');
+            } else {
+                selectedOption.classList.add('incorrect');
+                // Also highlight the correct answer
+                document.getElementById(`option-${currentQuestion.correctAnswer}`).classList.add('correct');
+            }
+
+            // Show explanation
+            const explanationDiv = document.createElement('div');
+            explanationDiv.id = 'explanation';
+            explanationDiv.className = 'mt-6 p-4 bg-blue-50 rounded-md';
+            explanationDiv.innerHTML = `
+                <p class="font-medium text-blue-800">Explanation:</p>
+                <p class="text-blue-700">${currentQuestion.explanation}</p>
+            `;
+            
+            questionContainer.appendChild(explanationDiv);
+        }
+
+        // Handle moving to the next question
+        function handleNextQuestion() {
+            if (quizState.currentQuestionIndex < quizState.totalQuestions - 1) {
+                quizState.currentQuestionIndex++;
+                renderCurrentQuestion();
+                updateNavigationButtons();
+            }
+        }
+
+        // Handle moving to the previous question
+        function handlePreviousQuestion() {
+            if (quizState.currentQuestionIndex > 0) {
+                quizState.currentQuestionIndex--;
+                renderCurrentQuestion();
+                updateNavigationButtons();
+            }
+        }
+
+        // Handle quiz submission
+        function handleQuizSubmission() {
+            quizSection.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+
+            // Calculate and display results
+            const score = quizState.score;
+            const total = quizState.totalQuestions;
+            const percentage = Math.round((score / total) * 100);
+
+            finalScore.textContent = score;
+            finalTotal.textContent = total;
+            resultPercentage.textContent = `${percentage}%`;
+
+            // Animate the result circle
+            const circumference = 2 * Math.PI * 90;
+            const offset = circumference - (percentage / 100) * circumference;
+            resultCircleProgress.style.strokeDashoffset = offset;
+
+            // Set result message based on performance
+            let message = '';
+            if (percentage >= 80) {
+                message = `Excellent work! Your knowledge of ${quizState.quizTopic} is impressive.`;
+            } else if (percentage >= 60) {
+                message = `Good job! You have a solid grasp of ${quizState.quizTopic}.`;
+            } else if (percentage >= 40) {
+                message = `Not bad! Keep learning about ${quizState.quizTopic}.`;
+            } else {
+                message = `Keep practicing! ${quizState.quizTopic} can be tricky.`;
+            }
+            resultMessage.textContent = message;
+        }
+
+        // Update navigation buttons based on current state
+        function updateNavigationButtons() {
+            prevBtn.disabled = quizState.currentQuestionIndex === 0;
+            nextBtn.disabled = false;
+            submitBtn.classList.add('hidden');
+
+            if (quizState.currentQuestionIndex === quizState.totalQuestions - 1) {
+                nextBtn.disabled = true;
+                const allAnswered = quizState.userAnswers.every(answer => answer !== null);
+                if (allAnswered) {
+                    submitBtn.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Update the score display
+        function updateScore() {
+            scoreDisplay.textContent = quizState.score;
+        }
+
+        // Update the progress bar
+        function updateProgressBar() {
+            const progress = ((quizState.currentQuestionIndex + 1) / quizState.totalQuestions) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        // Reset the quiz for a new attempt
+        function resetQuiz() {
+            resultsSection.classList.add('hidden');
+            configSection.classList.remove('hidden');
+            
+            // Reset form
+            quizForm.reset();
+            
+            // Reset state
+            quizState.currentQuestionIndex = 0;
+            quizState.score = 0;
+            quizState.quizData = [];
+            quizState.userAnswers = [];
+            quizState.quizTopic = '';
+            quizState.totalQuestions = 0;
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

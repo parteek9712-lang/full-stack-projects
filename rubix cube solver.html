@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube Solver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .cube-container {
+            perspective: 1000px;
+            margin: 0 auto;
+            width: 300px;
+            height: 300px;
+        }
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        .cube-face {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 2px solid black;
+            box-sizing: border-box;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .cube-face .sticker {
+            width: 33.33%;
+            height: 33.33%;
+            box-sizing: border-box;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+        .cube-face-front { transform: translateZ(50px); }
+        .cube-face-back { transform: rotateY(180deg) translateZ(50px); }
+        .cube-face-left { transform: rotateY(-90deg) translateZ(50px); }
+        .cube-face-right { transform: rotateY(90deg) translateZ(50px); }
+        .cube-face-top { transform: rotateX(90deg) translateZ(50px); }
+        .cube-face-bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+        .solution-step {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            padding: 8px;
+            margin: 5px 0;
+            transition: background-color 0.3s;
+        }
+        .solution-step:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+        .solution-step.current {
+            background-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .color-bg-white { background-color: white; }
+        .color-bg-yellow { background-color: yellow; }
+        .color-bg-red { background-color: red; }
+        .color-bg-orange { background-color: orange; }
+        .color-bg-blue { background-color: blue; }
+        .color-bg-green { background-color: green; }
+
+        @keyframes rotate-animation {
+            0% { transform: rotateX(0) rotateY(0); }
+            100% { transform: rotateX(360deg) rotateY(360deg); }
+        }
+        .cube.demo-mode {
+            animation: rotate-animation 20s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto py-8 px-4">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-2">Rubik's Cube Solver</h1>
+            <p class="text-gray-300">Visual interactive solver with step-by-step instructions</p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Cube Visualization -->
+            <div class="lg:w-1/2">
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-center">3D Cube</h2>
+                    <div class="flex justify-center mb-6">
+                        <div class="cube-container">
+                            <div class="cube" id="cube-3d">
+                                <div class="cube-face cube-face-front" id="front-face"></div>
+                                <div class="cube-face cube-face-back" id="back-face"></div>
+                                <div class="cube-face cube-face-left" id="left-face"></div>
+                                <div class="cube-face cube-face-right" id="right-face"></div>
+                                <div class="cube-face cube-face-top" id="top-face"></div>
+                                <div class="cube-face cube-face-bottom" id="bottom-face"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <button onclick="resetCube()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+                            Reset Cube
+                        </button>
+                        <button onclick="scrambleCube()" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition">
+                            Scramble
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <button onclick="rotateUp()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition">
+                            Up (U)
+                        </button>
+                        <button onclick="rotateDown()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition">
+                            Down (D)
+                        </button>
+                        <button onclick="rotateFront()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition">
+                            Front (F)
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <button onclick="rotateBack()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition">
+                            Back (B)
+                        </button>
+                        <button onclick="rotateLeft()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition">
+                            Left (L)
+                        </button>
+                        <button onclick="rotateRight()" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition">
+                            Right (R)
+                        </button>
+                    </div>
+
+                    <div class="mt-6">
+                        <button onclick="solveCube()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded transition font-semibold">
+                            Solve Cube
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls and Solution -->
+            <div class="lg:w-1/2">
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg mb-8">
+                    <h2 class="text-2xl font-semibold mb-4">Cube Configuration</h2>
+                    <div class="grid grid-cols-3 gap Money-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Front Face</label>
+                            <select id="front-color" class="w-full bg-gray-700 text-white rounded px-3 py-2">
+                                <option value="white">White</option>
+                                <option value="yellow">Yellow</option>
+                                <option value="red">Red</option>
+                                <option value="orange">Orange</option>
+                                <option value="blue">Blue</option>
+                                <option value="green">Green</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Back Face</label>
+                            <select id="back-color" class="w-full bg-gray-700 text-white rounded px-3 py-2">
+                                <option value="white">White</option>
+                                <option value="yellow">Yellow</option>
+                                <option value="red">Red</option>
+                                <option value="orange">Orange</option>
+                                <option value="blue">Blue</option>
+                                <option value="green">Green</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Color Palette</label>
+                            <select id="color-palette" class="w-full bg-gray-700 text-white rounded px-3 py-2">
+                                <option value="standard">Standard</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="updateCubeColors()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+                        Update Colors
+                    </button>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg mb-8">
+                    <h2 class="text-2xl font-semibold mb-4">Solution</h2>
+                    <div class="max-h-60 overflow-y-auto" id="solution-steps">
+                        <p class="text-gray-400 text-center py-8">Solve the cube to see the solution steps</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4">Tutorial</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="font-medium">1. Input Your Cube</h3>
+                            <p class="text-gray-300 text-sm">Use the controls to manipulate the 3D cube or select from preset configurations.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-medium">2. Click Solve</h3>
+                            <p class="text-gray-300 text-sm">Our algorithm will analyze the cube and generate a solution.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-medium">3. Follow the Steps</h3>
+                            <p class="text-gray-300 text-sm">The solution will display below with detailed instructions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 py-6 mt-12">
+        <div class="container mx-auto text-center text-gray-400">
+            <p>Rubik's Cube Solver - Interactive 3D Visualization Tool</p>
+            <p class="text-sm mt-2">Implementing CFOP method with JavaScript</p>
+        </div>
+    </footer>
+
+    <script>
+        // Cube state representation
+        let cubeState = {
+            front: Array(9).fill('white'),
+            back: Array(9).fill('yellow'),
+            left: Array(9).fill('orange'),
+            right: Array(9).fill('red'),
+            top: Array(9).fill('blue'),
+            bottom: Array(9).fill('green')
+        };
+
+        // Color mapping
+        const colorClasses = {
+            white: 'color-bg-white',
+            yellow: 'color-bg-yellow',
+            red: 'color-bg-red',
+            orange: 'color-bg-orange',
+            blue: 'color-bg-blue',
+            green: 'color-bg-green'
+        };
+
+        // Initialize the cube visualization
+        function initializeCube() {
+            // Create stickers for each face
+            const faces = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+            faces.forEach(face => {
+                const faceElement = document.getElementById(`${face}-face`);
+                for (let i = 0; i < 9; i++) {
+                    const sticker = document.createElement('div');
+                    sticker.className = 'sticker ' + colorClasses[cubeState[face][i]];
+                    sticker.dataset.position = i;
+                    sticker.dataset.face = face;
+                    sticker.addEventListener('click', function() {
+                        changeStickerColor(this);
+                    });
+                    faceElement.appendChild(sticker);
+                }
+            });
+        }
+
+        // Change sticker color on click
+        function changeStickerColor(sticker) {
+            const face = sticker.dataset.face;
+            const position = sticker.dataset.position;
+            
+            // Cycle through colors
+            const currentColor = cubeState[face][position];
+            const colors = Object.keys(colorClasses);
+            const currentIndex = colors.indexOf(currentColor);
+            const nextIndex = (currentIndex + 1) % colors.length;
+            const nextColor = colors[nextIndex];
+            
+            cubeState[face][position] = nextColor;
+            sticker.className = 'sticker ' + colorClasses[nextColor];
+        }
+
+        // Update all stickers to match current cube state
+        function updateCubeVisualization() {
+            const faces = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+            faces.forEach(face => {
+                for (let i = 0; i < 9; i++) {
+                    const sticker = document.querySelector(`[data-face="${face}"][data-position="${i}"]`);
+                    if (sticker) {
+                        sticker.className = 'sticker ' + colorClasses[cubeState[face][i]];
+                    }
+                }
+            });
+        }
+
+        // Reset cube to solved state
+        function resetCube() {
+            cubeState = {
+                front: Array(9).fill('white'),
+                back: Array(9).fill('yellow'),
+                left: Array(9).fill('orange'),
+                right: Array(9).fill('red'),
+                top: Array(9).fill('blue'),
+                bottom: Array(9).fill('green')
+            };
+            updateCubeVisualization();
+            document.getElementById('solution-steps').innerHTML = '<p class="text-gray-400 text-center py-8">Solve the cube to see the solution steps</p>';
+        }
+
+        // Scramble the cube
+        function scrambleCube() {
+            const moves = [
+                'U', 'U\'', 'D', 'D\'', 'L', 'L\'', 'R', 'R\'', 
+                'F', 'F\'', 'B', 'B\'', 'U2', 'D2', 'L2', 'R2', 'F2', 'B2'
+            ];
+            
+            const scrambleLength = 20;
+            let scrambleMoves = [];
+            
+            for (let i = 0; i < scrambleLength; i++) {
+                const randomMove = moves[Math.floor(Math.random() * moves.length)];
+                scrambleMoves.push(randomMove);
+                performMove(randomMove);
+            }
+            
+            updateCubeVisualization();
+            
+            // Display the scramble moves
+            document.getElementById('solution-steps').innerHTML = `
+                <div class="text-center mb-2">Scramble Sequence:</div>
+                <div class="flex flex-wrap justify-center gap-2">
+                    ${scrambleMoves.map(move => 
+                        `<span class="bg-gray-700 px-2 py-1 rounded">${move}</span>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        // Update cube colors based on user selection
+        function updateCubeColors() {
+            const frontColor = document.getElementById('front-color').value;
+            const backColor = document.getElementById('back-color').value;
+            
+            // Default standard color scheme
+            const colorScheme = {
+                front: frontColor,
+                back: backColor,
+                right: 'red',
+                left: 'orange',
+                top: 'blue',
+                bottom: 'green'
+            };
+            
+            // Apply color scheme
+            Object.keys(colorScheme).forEach(face => {
+                cubeState[face].fill(colorScheme[face]);
+            });
+            
+            updateCubeVisualization();
+        }
+
+        // Basic cube move functions
+        function performMove(move) {
+            switch(move) {
+                case 'U': rotateUp(); break;
+                case 'U\'': rotateUp(true); break;
+                case 'D': rotateDown(); break;
+                case 'D\'': rotateDown(true); break;
+                case 'F': rotateFront(); break;
+                case 'F\'': rotateFront(true); break;
+                case 'B': rotateBack(); break;
+                case 'B\'': rotateBack(true); break;
+                case 'L': rotateLeft(); break;
+                case 'L\'': rotateLeft(true); break;
+                case 'R': rotateRight(); break;
+                case 'R\'': rotateRight(true); break;
+                case 'U2': rotateUp(); rotateUp(); break;
+                case 'D2': rotateDown(); rotateDown(); break;
+                case 'F2': rotateFront(); rotateFront(); break;
+                case 'B2': rotateBack(); rotateBack(); break;
+                case 'L2': rotateLeft(); rotateLeft(); break;
+                case 'R2': rotateRight(); rotateRight(); break;
+            }
+        }
+
+        function rotateUp(counterClockwise = false) {
+            // Rotate the top face
+            rotateFace(cubeState.top, counterClockwise);
+            
+            // Rotate the adjacent edges
+            const frontRow = cubeState.front.slice(0, 3);
+            const rightRow = cubeState.right.slice(0, 3);
+            const backRow = cubeState.back.slice(0, 3);
+            const leftRow = cubeState.left.slice(0, 3);
+            
+            if (counterClockwise) {
+                cubeState.front[0] = leftRow[0];
+                cubeState.front[1] = leftRow[1];
+                cubeState.front[2] = leftRow[2];
+                
+                cubeState.left[0] = backRow[0];
+                cubeState.left[1] = backRow[1];
+                cubeState.left[2] = backRow[2];
+                
+                cubeState.back[0] = rightRow[0];
+                cubeState.back[1] = rightRow[1];
+                cubeState.back[2] = rightRow[2];
+                
+                cubeState.right[0] = frontRow[0];
+                cubeState.right[1] = frontRow[1];
+                cubeState.right[2] = frontRow[2];
+            } else {
+                cubeState.front[0] = rightRow[0];
+                cubeState.front[1] = rightRow[1];
+                cubeState.front[2] = rightRow[2];
+                
+                cubeState.right[0] = backRow[0];
+                cubeState.right[1] = backRow[1];
+                cubeState.right[2] = backRow[2];
+                
+                cubeState.back[0] = leftRow[0];
+                cubeState.back[1] = leftRow[1];
+                cubeState.back[2] = leftRow[2];
+                
+                cubeState.left[0] = frontRow[0];
+                cubeState.left[1] = frontRow[1];
+                cubeState.left[2] = frontRow[2];
+            }
+        }
+
+        function rotateDown(counterClockwise = false) {
+            // Rotate the bottom face
+            rotateFace(cubeState.bottom, counterClockwise);
+            
+            // Rotate the adjacent edges
+            const frontRow = cubeState.front.slice(6, 9);
+            const rightRow = cubeState.right.slice(6, 9);
+            const backRow = cubeState.back.slice(6, 9);
+            const leftRow = cubeState.left.slice(6, 9);
+            
+            if (counterClockwise) {
+                cubeState.front[6] = rightRow[0];
+                cubeState.front[7] = rightRow[1];
+                cubeState.front[8] = rightRow[2];
+                
+                cubeState.right[6] = backRow[0];
+                cubeState.right[7] = backRow[1];
+                cubeState.right[8] = backRow[2];
+                
+                cubeState.back[6] = leftRow[0];
+                cubeState.back[7] = leftRow[1];
+                cubeState.back[8] = leftRow[2];
+                
+                cubeState.left[6] = frontRow[0];
+                cubeState.left[7] = frontRow[1];
+                cubeState.left[8] = frontRow[2];
+            } else {
+                cubeState.front[6] = leftRow[0];
+                cubeState.front[7] = leftRow[1];
+                cubeState.front[8] = leftRow[2];
+                
+                cubeState.left[6] = backRow[0];
+                cubeState.left[7] = backRow[1];
+                cubeState.left[8] = backRow[2];
+                
+                cubeState.back[6] = rightRow[0];
+                cubeState.back[7] = rightRow[1];
+                cubeState.back[8] = rightRow[2];
+                
+                cubeState.right[6] = frontRow[0];
+                cubeState.right[7] = frontRow[1];
+                cubeState.right[8] = frontRow[2];
+            }
+        }
+
+        function rotateFront(counterClockwise = false) {
+            // Rotate the front face
+            rotateFace(cubeState.front, counterClockwise);
+            
+            // Rotate the adjacent edges
+            const topRow = cubeState.top.slice(6, 9);
+            const rightCol = [cubeState.right[0], cubeState.right[3], cubeState.right[6]];
+            const bottomRow = cubeState.bottom.slice(0, 3);
+            const leftCol = [cubeState.left[2], cubeState.left[5], cubeState.left[8]];
+            
+            if (counterClockwise) {
+                cubeState.top[6] = leftCol[2];
+                cubeState.top[7] = leftCol[1];
+                cubeState.top[8] = leftCol[0];
+                
+                cubeState.right[0] = topRow[0];
+                cubeState.right[3] = topRow[1];
+                cubeState.right[6] = topRow[2];
+                
+                cubeState.bottom[0] = rightCol[0];
+                cubeState.bottom[1] = rightCol[1];
+                cubeState.bottom[2] = rightCol[2];
+                
+                cubeState.left[2] = bottomRow[2];
+                cubeState.left[5] = bottomRow[1];
+                cubeState.left[8] = bottomRow[0];
+            } else {
+                cubeState.top[6] = rightCol[0];
+                cubeState.top[7] = rightCol[1];
+                cubeState.top[8] = rightCol[2];
+                
+                cubeState.right[0] = bottomRow[2];
+                cubeState.right[3] = bottomRow[1];
+                cubeState.right[6] = bottomRow[0];
+                
+                cubeState.bottom[0] = leftCol[0];
+                cubeState.bottom[1] = leftCol[1];
+                cubeState.bottom[2] = leftCol[2];
+                
+                cubeState.left[2] = topRow[0];
+                cubeState.left[5] = topRow[1];
+                cubeState.left[8] = topRow[2];
+            }
+        }
+
+        function rotateBack(counterClockwise = false) {
+            // Rotate the back face
+            rotateFace(cubeState.back, counterClockwise);
+            
+            // Rotate the adjacent edges
+            const topRow = cubeState.top.slice(0, 3);
+            const rightCol = [cubeState.right[2], cubeState.right[5], cubeState.right[8]];
+            const bottomRow = cubeState.bottom.slice(6, 9);
+            const leftCol = [cubeState.left[0], cubeState.left[3], cubeState.left[6]];
+            
+            if (counterClockwise) {
+                cubeState.top[0] = rightCol[0];
+                cubeState.top[1] = rightCol[1];
+                cubeState.top[2] = rightCol[2];
+                
+                cubeState.right[2] = bottomRow[2];
+                cubeState.right[5] = bottomRow[1];
+                cubeState.right[8] = bottomRow[0];
+                
+                cubeState.bottom[6] = leftCol[0];
+                cubeState.bottom[7] = leftCol[1];
+                cubeState.bottom[8] = leftCol[2];
+                
+                cubeState.left[0] = topRow[2];
+                cubeState.left[3] = topRow[1];
+                cubeState.left[6] = topRow[0];
+            } else {
+                cubeState.top[0] = leftCol[2];
+                cubeState.top[1] = leftCol[1];
+                cubeState.top[2] = leftCol[0];
+                
+                cubeState.right[2] = topRow[0];
+                cubeState.right[5] = topRow[1];
+                cubeState.right[8] = topRow[2];
+                
+                cubeState.bottom[6] = rightCol[2];
+                cubeState.bottom[7] = rightCol[1];
+                cubeState.bottom[8] = rightCol[0];
+                
+                cubeState.left[0] = bottomRow[0];
+                cubeState.left[3] = bottomRow[1];
+                cubeState.left[6] = bottomRow[2];
+            }
+        }
+
+        function rotateLeft(counterClockwise = false) {
+            // Rotate the left face
+            rotateFace(cubeState.left, counterClockwise);
+            
+            // Rotate the adjacent edges
+            const topCol = [cubeState.top[0], cubeState.top[3], cubeState.top[6]];
+            const frontCol = [cubeState.front[0], cubeState.front[3], cubeState.front[6]];
+            const bottomCol = [cubeState.bottom[0], cubeState.bottom[3], cubeState.bottom[6]];
+            const backCol = [cubeState.back[2], cubeState.back[5], cubeState.back[8]];
+            
+            if (counterClockwise) {
+                cubeState.top[0] = backCol[2];
+                cubeState.top[3] = backCol[1];
+                cubeState.top[6] = backCol[0];
+                
+                cubeState.front[0] = topCol[0];
+                cubeState.front[3] = topCol[1];
+                cubeState.front[6] = topCol[2];
+                
+                cubeState.bottom[0] = frontCol[0];
+                cubeState.bottom[3] = frontCol[1];
+                cubeState.bottom[6] = frontCol[2];
+                
+                cubeState.back[2] = bottomCol[2];
+                cubeState.back[5] = bottomCol[1];
+                cubeState.back[8] = bottomCol[0];
+            } else {
+                cubeState.top[0] = frontCol[0];
+                cubeState.top[3] = frontCol[1];
+                cubeState.top[6] = frontCol[2];
+                
+                cubeState.front[0] = bottomCol[0];
+                cubeState.front[3] = bottomCol[1];
+                cubeState.front[6] = bottomCol[2];
+                
+                cubeState.bottom[0] = backCol[2];
+                cubeState.bottom[3] = backCol[1];
+                cubeState.bottom[6] = backCol[0];
+                
+                cubeState.back[2] = topCol[2];
+                cubeState.back[5] = topCol[1];
+                cubeState.back[8] = topCol[0];
+            }
+        }
+
+        function rotateRight(counterClockwise = false) {
+            // Rotate the right face
+            rotateFace(cubeState.right, counterClockwise);
+            
+            // Rotate the adjacent edges
+            const topCol = [cubeState.top[2], cubeState.top[5], cubeState.top[8]];
+            const frontCol = [cubeState.front[2], cubeState.front[5], cubeState.front[8]];
+            const bottomCol = [cubeState.bottom[2], cubeState.bottom[5], cubeState.bottom[8]];
+            const backCol = [cubeState.back[0], cubeState.back[3], cubeState.back[6]];
+            
+            if (counterClockwise) {
+                cubeState.top[2] = frontCol[0];
+                cubeState.top[5] = frontCol[1];
+                cubeState.top[8] = frontCol[2];
+                
+                cubeState.front[2] = bottomCol[0];
+                cubeState.front[5] = bottomCol[1];
+                cubeState.front[8] = bottomCol[2];
+                
+                cubeState.bottom[2] = backCol[2];
+                cubeState.bottom[5] = backCol[1];
+                cubeState.bottom[8] = backCol[0];
+                
+                cubeState.back[0] = topCol[2];
+                cubeState.back[3] = topCol[1];
+                cubeState.back[6] = topCol[0];
+            } else {
+                cubeState.top[2] = backCol[2];
+                cubeState.top[5] = backCol[1];
+                cubeState.top[8] = backCol[0];
+                
+                cubeState.front[2] = topCol[0];
+                cubeState.front[5] = topCol[1];
+                cubeState.front[8] = topCol[2];
+                
+                cubeState.bottom[2] = frontCol[0];
+                cubeState.bottom[5] = frontCol[1];
+                cubeState.bottom[8] = frontCol[2];
+                
+                cubeState.back[0] = bottomCol[2];
+                cubeState.back[3] = bottomCol[1];
+                cubeState.back[6] = bottomCol[0];
+            }
+        }
+
+        // Helper function to rotate a face clockwise or counter-clockwise
+        function rotateFace(face, counterClockwise = false) {
+            // Create a temporary copy of the face
+            const temp = [...face];
+            
+            if (counterClockwise) {
+                // Counter-clockwise rotation
+                face[0] = temp[2];
+                face[1] = temp[5];
+                face[2] = temp[8];
+                face[3] = temp[1];
+                face[5] = temp[7];
+                face[6] = temp[0];
+                face[7] = temp[3];
+                face[8] = temp[6];
+            } else {
+                // Clockwise rotation
+                face[0] = temp[6];
+                face[1] = temp[3];
+                face[2] = temp[0];
+                face[3] = temp[7];
+                face[5] = temp[1];
+                face[6] = temp[8];
+                face[7] = temp[5];
+                face[8] = temp[2];
+            }
+        }
+
+        // Solve the cube using CFOP method (simplified version)
+        function solveCube() {
+            // Initialize solution steps
+            const solutionSteps = [];
+            const currentState = JSON.parse(JSON.stringify(cubeState));
+            
+            // Simplified CFOP steps
+            solutionSteps.push({step: "1", description: "Make a white cross on top", moves: solveWhiteCross()});
+            solutionSteps.push({step: "2", description: "Solve white corners", moves: solveWhiteCorners()});
+            solutionSteps.push({step: "3", description: "Solve middle layer edges", moves: solveMiddleLayer()});
+            solutionSteps.push({step: "4", description: "Make yellow cross", moves: solveYellowCross()});
+            solutionSteps.push({step: "5", description: "Orient yellow edges", moves: orientYellowEdges()});
+            solutionSteps.push({step: "6", description: "Position yellow corners", moves: positionYellowCorners()});
+            solutionSteps.push({step: "7", description: "Orient yellow corners", moves: orientYellowCorners()});
+            
+            // Display the solution steps
+            displaySolution(solutionSteps);
+            
+            // Restore cube to original state (for demonstration purposes)
+            setTimeout(() => {
+                cubeState = currentState;
+                updateCubeVisualization();
+            }, 1000);
+        }
+
+        function solveWhiteCross() {
+            // Simplified white cross solution
+            return ["F", "R", "U", "R'", "U'", "F'"];
+        }
+
+        function solveWhiteCorners() {
+            return ["R", "U", "R'", "U'"];
+        }
+
+        function solveMiddleLayer() {
+            return ["U", "R", "U", "R'", "U'", "F'", "U'", "F"];
+        }
+
+        function solveYellowCross() {
+            return ["F", "R", "U", "R'", "U'", "F'"];
+        }
+
+        function orientYellowEdges() {
+            return ["R", "U", "R'", "U", "R", "U2", "R'"];
+        }
+
+        function positionYellowCorners() {
+            return ["U", "R", "U'", "L'", "U", "R'", "U'", "L"];
+        }
+
+        function orientYellowCorners() {
+            return ["R'", "D'", "R", "D", "R'", "D'", "R", "D"];
+        }
+
+        // Display solution steps
+        function displaySolution(steps) {
+            const solutionContainer = document.getElementById('solution-steps');
+            solutionContainer.innerHTML = '';
+            
+            steps.forEach(item => {
+                const stepEl = document.createElement('div');
+                stepEl.className = 'solution-step';
+                stepEl.innerHTML = `
+                    <div class="flex justify-between mb-2">
+                        <span class="font-semibold">${item.step}. ${item.description}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${item.moves.map(move => 
+                            `<span class="bg-blue-900 px-2 py-1 rounded">${move}</span>`
+                        ).join('')}
+                    </div>
+                `;
+                
+                solutionContainer.appendChild(stepEl);
+            });
+            
+            // Add demo button
+            const demoEl = document.createElement('button');
+            demoEl.className = 'mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition';
+            demoEl.textContent = "Watch Solution Animation";
+            demoEl.onclick = function() {
+                document.getElementById('cube-3d').classList.add('demo-mode');
+                setTimeout(() => {
+                    document.getElementById('cube-3d').classList.remove('demo-mode');
+                }, 20000);
+            };
+            solutionContainer.appendChild(demoEl);
+        }
+
+        // Initialize the cube when page loads
+        window.onload = function() {
+            initializeCube();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitwise Clone</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --secondary: #607D8B;
+            --light: #f5f5f5;
+            --dark: #212121;
+            --danger: #F44336;
+            --warning: #FF9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f9f9f9;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .friend-list {
+            list-style: none;
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .friend-item:last-child {
+            border-bottom: none;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--secondary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .friend-info {
+            flex-grow: 1;
+        }
+
+        .friend-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .friend-balance {
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+
+        .positive-balance {
+            color: var(--primary);
+        }
+
+        .negative-balance {
+            color: var(--danger);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .expense-form {
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .expense-list {
+            list-style: none;
+        }
+
+        .expense-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expense-item:last-child {
+            border-bottom: none;
+        }
+
+        .expense-details {
+            flex-grow: 1;
+        }
+
+        .expense-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .expense-meta {
+            font-size: 0.85rem;
+            color: var(--secondary);
+        }
+
+        .expense-amount {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .settle-up {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .settle-up h3 {
+            margin-bottom: 15px;
+        }
+
+        .settlement-list {
+            list-style: none;
+        }
+
+        .settlement-item {
+            background-color: #f5f5f5;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: var(--secondary);
+        }
+
+        .empty-state img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+
+        .tab-container {
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .avatar-small {
+            width: 30px;
+            height: 30px;
+            font-size: 0.8rem;
+        }
+
+        .simplify-btn {
+            background-color: var(--warning);
+            color: white;
+            margin-top: 20px;
+        }
+
+        .simplify-btn:hover {
+            background-color: #F57C00;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>Splitwise Clone</h1>
+                <div class="nav-links">
+                    <a href="#" id="current-user">Hi, User</a>
+                    <a href="#">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-grid">
+            <div class="sidebar">
+                <div class="card">
+                    <h2>Friends</h2>
+                    <ul class="friend-list" id="friend-list">
+                        <!-- Populated by JS -->
+                    </ul>
+                    <button class="btn btn-outline" id="add-friend-btn">Add Friend</button>
+                </div>
+
+                <div class="card settle-up">
+                    <h3>Simplify Debts</h3>
+                    <ul class="settlement-list" id="settlement-list">
+                        <!-- Populated by JS -->
+                    </ul>
+                    <button class="btn simplify-btn" id="simplify-btn">Simplify</button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="card">
+                    <div class="tab-container">
+                        <div class="tabs">
+                            <div class="tab active" data-tab="expenses">Expenses</div>
+                            <div class="tab" data-tab="balances">Balances</div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content active" id="expenses-tab">
+                        <button class="btn btn-primary" id="add-expense-btn">Add an expense</button>
+                        
+                        <div class="expense-form" id="expense-form" style="display: none;">
+                            <div class="form-group">
+                                <label for="expense-description">Description</label>
+                                <input type="text" id="expense-description" placeholder="What was this expense for?">
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-amount">Amount</label>
+                                <input type="number" id="expense-amount" placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-paid-by">Paid by</label>
+                                <select id="expense-paid-by">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Split between</label>
+                                <div id="expense-split-members">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="save-expense-btn">Save Expense</button>
+                            <button class="btn" id="cancel-expense-btn">Cancel</button>
+                        </div>
+
+                        <ul class="expense-list" id="expense-list">
+                            <!-- Populated by JS -->
+                            <div class="empty-state">
+                                <img src="https://placehold.co/300x200" alt="Illustration of empty expense list - clipboard with checkmarks">
+                                <h3>No expenses yet</h3>
+                                <p>Add an expense to get started</p>
+                            </div>
+                        </ul>
+                    </div>
+
+                    <div class="tab-content" id="balances-tab">
+                        <div id="balances-chart">
+                            <!-- Chart will be rendered here -->
+                            <div class="empty-state">
+                                <img src="https://placehold.co/300x200" alt="Illustration of balance chart - pie chart visualization">
+                                <h3>Balances will appear here</h3>
+                                <p>Add expenses with friends to see balances</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        const users = [
+            { id: 1, name: "You" },
+            { id: 2, name: "Alex Johnson" },
+            { id: 3, name: "Sam Wilson" },
+            { id: 4, name: "Taylor Smith" }
+        ];
+
+        let expenses = [
+            {
+                id: 1,
+                description: "Dinner at Italian Restaurant",
+                amount: 120,
+                paidBy: 1,
+                date: "2023-05-15",
+                splitBetween: [1, 2, 3],
+                settled: false
+            },
+            {
+                id: 2,
+                description: "Movie tickets",
+                amount: 45,
+                paidBy: 2,
+                date: "2023-05-10",
+                splitBetween: [1, 2, 4],
+                settled: false
+            }
+        ];
+
+        // DOM elements
+        const currentUserEl = document.getElementById('current-user');
+        const friendListEl = document.getElementById('friend-list');
+        const expenseListEl = document.getElementById('expense-list');
+        const expenseFormEl = document.getElementById('expense-form');
+        const addExpenseBtn = document.getElementById('add-expense-btn');
+        const saveExpenseBtn = document.getElementById('save-expense-btn');
+        const cancelExpenseBtn = document.getElementById('add-friend-btn');
+        const expensePaidByEl = document.getElementById('expense-paid-by');
+        const expenseSplitMembersEl = document.getElementById('expense-split-members');
+        const settlementListEl = document.getElementById('settlement-list');
+        const simplifyBtn = document.getElementById('simplify-btn');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Initialize the app
+        initApp();
+
+        function initApp() {
+            currentUserEl.textContent = `Hi, ${users[0].name}`;
+            renderFriendList();
+            renderExpenseList();
+            populatePaidByDropdown();
+            calculateBalances();
+            setupEventListeners();
+            simplifyDebts();
+        }
+
+        function renderFriendList() {
+            friendListEl.innerHTML = '';
+            users.slice(1).forEach(user => {
+                const li = document.createElement('li');
+                li.className = 'friend-item';
+                li.innerHTML = `
+                    <div class="avatar">${getInitials(user.name)}</div>
+                    <div class="friend-info">
+                        <div class="friend-name">${user.name}</div>
+                        <div class="friend-balance" id="balance-${user.id}">$0.00</div>
+                    </div>
+                `;
+                friendListEl.appendChild(li);
+            });
+        }
+
+        function renderExpenseList() {
+            if (expenses.length === 0) {
+                expenseListEl.innerHTML = `
+                    <div class="empty-state">
+                        <img src="https://placehold.co/300x200" alt="Illustration of empty expense list - clipboard with checkmarks">
+                        <h3>No expenses yet</h3>
+                        <p>Add an expense to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            expenseListEl.innerHTML = '';
+            expenses.forEach(expense => {
+                const paidByUser = users.find(user => user.id === expense.paidBy);
+                const li = document.createElement('li');
+                li.className = 'expense-item';
+                li.innerHTML = `
+                    <div class="expense-details">
+                        <div class="expense-title">${expense.description}</div>
+                        <div class="expense-meta">Paid by ${paidByUser.name} • ${expense.date}</div>
+                    </div>
+                    <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
+                `;
+                expenseListEl.appendChild(li);
+            });
+        }
+
+        function populatePaidByDropdown() {
+            expensePaidByEl.innerHTML = '';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                expensePaidByEl.appendChild(option);
+            });
+        }
+
+        function renderSplitBetweenCheckboxes() {
+            expenseSplitMembersEl.innerHTML = '';
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.innerHTML = `
+                    <input type="checkbox" id="split-${user.id}" value="${user.id}" checked style="margin-right: 10px;">
+                    <label for="split-${user.id}" style="margin-bottom: 0;">${user.name}</label>
+                `;
+                expenseSplitMembersEl.appendChild(div);
+            });
+        }
+
+        function calculateBalances() {
+            // Reset balances
+            users.forEach(user => {
+                user.balance = 0;
+            });
+
+            // Calculate balances
+            expenses.forEach(expense => {
+                if (!expense.settled) {
+                    const payer = users.find(user => user.id === expense.paidBy);
+                    const splitCount = expense.splitBetween.length;
+                    const amountPerPerson = expense.amount / splitCount;
+
+                    payer.balance += expense.amount;
+
+                    expense.splitBetween.forEach(userId => {
+                        const user = users.find(user => user.id === userId);
+                        if (user) {
+                            user.balance -= amountPerPerson;
+                        }
+                    });
+                }
+            });
+
+            // Update UI
+            users.slice(1).forEach(user => {
+                const balanceEl = document.querySelector(`#balance-${user.id}`);
+                if (balanceEl) {
+                    balanceEl.textContent = `$${Math.abs(user.balance).toFixed(2)}`;
+                    balanceEl.className = user.balance > 0 ? 'friend-balance positive-balance' : 'friend-balance negative-balance';
+                    
+                    if (user.balance > 0) {
+                        balanceEl.textContent = `${users[0].name} owes $${user.balance.toFixed(2)}`;
+                    } else if (user.balance < 0) {
+                        balanceEl.textContent = `Owes ${users[0].name} $${Math.abs(user.balance).toFixed(2)}`;
+                    } else {
+                        balanceEl.textContent = `Settled up`;
+                    }
+                }
+            });
+        }
+
+        function simplifyDebts() {
+            settlementListEl.innerHTML = '';
+
+            // This is a simplified version - in a real app you'd use a more complex algorithm
+            const transactions = [];
+            const you = users[0];
+            users.slice(1).forEach(friend => {
+                if (friend.balance > 0) {
+                    transactions.push({
+                        from: you.name,
+                        to: friend.name,
+                        amount: friend.balance
+                    });
+                } else if (friend.balance < 0) {
+                    transactions.push({
+                        from: friend.name,
+                        to: you.name,
+                        amount: Math.abs(friend.balance)
+                    });
+                }
+            });
+
+            transactions.forEach(transaction => {
+                const li = document.createElement('li');
+                li.className = 'settlement-item';
+                li.textContent = `${transaction.from} owes ${transaction.to} $${transaction.amount.toFixed(2)}`;
+                settlementListEl.appendChild(li);
+            });
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(word => word[0]).join('');
+        }
+
+        function setupEventListeners() {
+            // Add expense button
+            addExpenseBtn.addEventListener('click', () => {
+                expenseFormEl.style.display = 'block';
+                addExpenseBtn.style.display = 'none';
+                renderSplitBetweenCheckboxes();
+            });
+
+            // Cancel expense button
+            cancelExpenseBtn.addEventListener('click', () => {
+                expenseFormEl.style.display = 'none';
+                addExpenseBtn.style.display = 'block';
+            });
+
+            // Save expense button
+            saveExpenseBtn.addEventListener('click', () => {
+                const description = document.getElementById('expense-description').value;
+                const amount = parseFloat(document.getElementById('expense-amount').value);
+                const paidBy = parseInt(expensePaidByEl.value);
+                
+                const splitBetween = [];
+                document.querySelectorAll('#expense-split-members input[type="checkbox"]:checked').forEach(checkbox => {
+                    splitBetween.push(parseInt(checkbox.value));
+                });
+
+                if (description && amount && paidBy && splitBetween.length > 0) {
+                    const newExpense = {
+                        id: expenses.length + 1,
+                        description,
+                        amount,
+                        paidBy,
+                        date: new Date().toISOString().split('T')[0],
+                        splitBetween,
+                        settled: false
+                    };
+
+                    expenses.push(newExpense);
+                    renderExpenseList();
+                    calculateBalances();
+                    simplifyDebts();
+                    
+                    expenseFormEl.style.display = 'none';
+                    addExpenseBtn.style.display = 'block';
+                    
+                    // Reset form
+                    document.getElementById('expense-description').value = '';
+                    document.getElementById('expense-amount').value = '';
+                }
+            });
+
+            // Simplify debts button
+            simplifyBtn.addEventListener('click', simplifyDebts);
+
+            // Tab switching
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    const tabId = `${tab.dataset.tab}-tab`;
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+    </script>
+</body>
+</html>

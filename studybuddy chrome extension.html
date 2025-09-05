@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Buddy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --secondary: #7c3aed;
+      --accent: #a78bfa;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    /* Extension sizing constraints */
+    body {
+      width: 350px;
+      height: 500px;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-gray-800">
+  <div class="flex flex-col h-full">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">
+      <h1 class="text-xl font-bold flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Student Buddy
+      </h1>
+      <p class="text-xs opacity-80 mt-1">Your all-in-one study companion</p>
+    </div>
+
+    <!-- Main Navigation -->
+    <div class="flex border-b border-gray-200">
+      <button onclick="showTab('dashboard')" class="flex-1 py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:border-indigo-300 hover:text-indigo-600 transition duration-150 ease-in-out tab-button active">Dashboard</button>
+      <button onclick="showTab('tasks')" class="flex-1 py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:border-indigo-300 hover:text-indigo-600 transition duration-150 ease-in-out tab-button">Tasks</button>
+      <button onclick="showTab('timer')" class="flex-1 py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:border-indigo-300 hover:text-indigo-600 transition duration-150 ease-in-out tab-button">Timer</button>
+      <button onclick="showTab('resources')" class="flex-1 py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:border-indigo-300 hover:text-indigo-600 transition duration-150 ease-in-out tab-button">Resources</button>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="flex-1 overflow-y-auto p-4">
+      <!-- Dashboard Tab -->
+      <div id="dashboard" class="tab-content">
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+          <h2 class="text-lg font-semibold mb-2 text-indigo-600">Welcome Back!</h2>
+          <div class="space-y-4">
+            <div>
+              <h3 class="font-medium text-gray-700">Today's Tasks</h3>
+              <div id="today-tasks" class="mt-2 space-y-2"></div>
+            </div>
+            
+            <div>
+              <h3 class="font-medium text-gray-700">Recent Resources</h3>
+              <div id="recent-resources" class="mt-2 grid grid-cols-2 gap-2"></div>
+            </div>
+            
+            <div>
+              <h3 class="font-medium text-gray-700">Quick Notes</h3>
+              <textarea id="quick-notes" class="mt-2 w-full border border-gray-200 rounded p-2 text-sm h-20 resize-none" placeholder="Jot down something quickly..."></textarea>
+              <button onclick="saveQuickNotes()" class="mt-2 bg-indigo-600 text-white px-3 py-1 rounded text-sm hover:bg-indigo-700 transition">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks Tab -->
+      <div id="tasks" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-indigo-600">Task Manager</h2>
+            <button onclick="showAddTaskModal()" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+          
+          <div class="space-y-3">
+            <div class="flex items-center space-x-2">
+              <input type="text" id="task-search" class="flex-1 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Search tasks...">
+              <select id="task-filter" class="border border-gray-200 rounded px-2 py-2 text-sm">
+                <option value="all">All</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            
+            <div id="tasks-list" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timer Tab -->
+      <div id="timer" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+          <h2 class="text-lg font-semibold mb-4 text-center text-indigo-600">Study Timer</h2>
+          
+          <div class="flex flex-col items-center">
+            <div class="timer-display mb-6 text-4xl font-mono font-medium" id="timer-display">25:00</div>
+            
+            <div class="flex space-x-4 mb-6">
+              <button onclick="startTimer()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" id="start-btn">Start</button>
+              <button onclick="pauseTimer()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition hidden" id="pause-btn">Pause</button>
+              <button onclick="resetTimer()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">Reset</button>
+            </div>
+            
+            <div class="w-full">
+              <h3 class="font-medium text-gray-700 mb-2">Timer Presets</h3>
+              <div class="grid grid-cols-3 gap-2">
+                <button onclick="setTimer(25)" class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded hover:bg-indigo-200 transition">25 min</button>
+                <button onclick="setTimer(50)" class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded hover:bg-indigo-200 transition">50 min</button>
+                <button onclick="setTimer(90)" class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded hover:bg-indigo-200 transition">90 min</button>
+              </div>
+            </div>
+            
+            <div class="w-full mt-6">
+              <h3 class="font-medium text-gray-700 mb-2">Study Stats</h3>
+              <div class="bg-gray-50 rounded p-3">
+                <div class="flex justify-between text-sm">
+                  <span>Today:</span>
+                  <span id="today-stats">0 minutes</span>
+                </div>
+                <div class="flex justify-between text-sm mt-1">
+                  <span>This Week:</span>
+                  <span id="week-stats">0 minutes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources Tab -->
+      <div id="resources" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-indigo-600">Study Resources</h2>
+            <button onclick="showAddResourceModal()" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+          
+          <div class="space-y-3">
+            <div class="flex items-center space-x-2">
+              <input type="text" id="resource-search" class="flex-1 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Search resources...">
+              <select id="resource-filter" class="border border-gray-200 rounded px-2 py-2 text-sm">
+                <option value="all">All</option>
+                <option value="url">Links</option>
+                <option value="file">Files</option>
+                <option value="note">Notes</option>
+              </select>
+            </div>
+            
+            <div id="resources-list" class="space-y-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-white border-t border-gray-200 p-2 text-center text-xs text-gray-500">
+      <span id="last-sync">Last synced: Just now</span>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-sm">
+        <div class="flex justify-between items-center border-b border-gray-200 p-3">
+          <h3 class="font-medium text-indigo-600">Add New Task</h3>
+          <button onclick="hideModal('add-task-modal')" class="text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="p-4 space-y-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Task Name</label>
+            <input type="text" id="task-name" class="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="e.g., Complete math assignment">
+          </div>
+          
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Due Date</label>
+            <input type="date" id="task-due-date" class="w-full border border-gray-200 rounded px-3 py-2 text-sm">
+          </div>
+          
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Priority</label>
+            <select id="task-priority" class="w-full border border-gray-200 rounded px-3 py-2 text-sm">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Notes</label>
+            <textarea id="task-notes" class="w-full border border-gray-200 rounded p-2 text-sm h-20 resize-none" placeholder="Additional details..."></textarea>
+          </div>
+        </div>
+        
+        <div class="border-t border-gray-200 p-3 flex justify-end space-x-2">
+          <button onclick="hideModal('add-task-modal')" class="px-3 py-1 border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-100 transition">Cancel</button>
+          <button onclick="addNewTask()" class="px-3 py-1 bg-indigo-600 rounded text-sm text-white hover:bg-indigo-700 transition">Save Task</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Resource Modal -->
+    <div id="add-resource-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-sm">
+        <div class="flex justify-between items-center border-b border-gray-200 p-3">
+          <h3 class="font-medium text-indigo-600">Add New Resource</h3>
+          <button onclick="hideModal('add-resource-modal')" class="text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="p-4 space-y-3">
+          <div class="flex border-b border-gray-200">
+            <button onclick="setResourceType('url')" class="px-3 py-2 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600">URL</button>
+            <button onclick="setResourceType('file')" class="px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">File</button>
+            <button onclick="setResourceType('note')" class="px-3 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Note</button>
+          </div>
+          
+          <div id="url-form">
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">URL</label>
+              <input type="url" id="resource-url" class="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="https://example.com">
+            </div>
+            
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">Title</label>
+              <input type="text" id="resource-url-title" class="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Resource title">
+            </div>
+            
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">Description</label>
+              <textarea id="resource-url-desc" class="w-full border border-gray-200 rounded p-2 text-sm h-20 resize-none" placeholder="Brief description..."></textarea>
+            </div>
+            
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">Category</label>
+              <input type="text" id="resource-url-category" class="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="e.g., Math, Science">
+            </div>
+          </div>
+          
+          <div id="file-form" class="hidden">
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">File Name</label>
+              <input type="text" id="resource-file-name" class="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="File name">
+            </div>
+            
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">Upload File</label>
+              <div class="border-2 border-dashed border-gray-200 rounded p-4 text-center">
+                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/5f0f50cc-0c3b-4dd5-8b97-0faab8bd7cd1.png" alt="File upload interface with dashed border and upload icon" class="mx-auto h-16 mb-2" />
+                <p class="text-sm text-gray-500">Drag and drop files here or click to browse</p>
+                <input type="file" class="hidden">
+              </div>
+            </div>
+          </div>
+          
+          <div id="note-form" class="hidden">
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">Title</label>
+              <input type="text" id="resource-note-title" class="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Note title">
+            </div>
+            
+            <div class="mt-3">
+              <label class="block text-sm text-gray-600 mb-1">Content</label>
+              <textarea id="resource-note-content" class="w-full border border-gray-200 rounded p-2 text-sm h-32 resize-none" placeholder="Your note content..."></textarea>
+            </div>
+          </div>
+        </div>
+        
+        <div class="border-t border-gray-200 p-3 flex justify-end space-x-2">
+          <button onclick="hideModal('add-resource-modal')" class="px-3 py-1 border border-gray-200 rounded text-sm text-gray-600 hover:bg-gray-100 transition">Cancel</button>
+          <button onclick="addNewResource()" class="px-3 py-1 bg-indigo-600 rounded text-sm text-white hover:bg-indigo-700 transition">Save Resource</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      tasks: [],
+      resources: [],
+      quickNotes: '',
+      timer: {
+        minutes: 25,
+        seconds: 0,
+        running: false,
+        interval: null
+      },
+      studyStats: {
+        today: 0,
+        week: 0
+      },
+      currentResourceType: 'url'
+    };
+
+    // DOM Elements
+    const tabContents = document.querySelectorAll('.tab-content');
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const timerDisplay = document.getElementById('timer-display');
+    const startBtn = document.getElementById('start-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    
+    // Initialize the extension
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      updateTimerDisplay();
+      renderTodayTasks();
+      renderRecentResources();
+      updateStudyStats();
+      
+      // Set up event listeners
+      document.getElementById('task-search').addEventListener('input', filterTasks);
+      document.getElementById('task-filter').addEventListener('change', filterTasks);
+      document.getElementById('resource-search').addEventListener('input', filterResources);
+      document.getElementById('resource-filter').addEventListener('change', filterResources);
+      
+      // Initialize with dashboard view
+      showTab('dashboard');
+    });
+
+    // Tab navigation
+    function showTab(tabId) {
+      tabContents.forEach(content => content.classList.add('hidden'));
+      tabButtons.forEach(button => button.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.remove('hidden');
+      document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+      
+      // Refresh the content when tab is shown
+      if (tabId === 'tasks') {
+        renderAllTasks();
+      } else if (tabId === 'resources') {
+        renderAllResources();
+      }
+    }
+
+    // Modal functions
+    function showAddTaskModal() {
+      document.getElementById('add-task-modal').classList.remove('hidden');
+      document.getElementById('task-name').focus();
+    }
+
+    function showAddResourceModal() {
+      document.getElementById('add-resource-modal').classList.remove('hidden');
+      document.getElementById('resource-url').focus();
+    }
+
+    function hideModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function setResourceType(type) {
+      state.currentResourceType = type;
+      
+      // Hide all forms
+      document.getElementById('url-form').classList.add('hidden');
+      document.getElementById('file-form').classList.add('hidden');
+      document.getElementById('note-form').classList.add('hidden');
+      
+      // Show selected form
+      document.getElementById(`${type}-form`).classList.remove('hidden');
+      
+      // Update tab button styles
+      const buttons = document.querySelectorAll('#add-resource-modal button[onclick^="setResourceType"]');
+      buttons.forEach(button => {
+        if (button.getAttribute('onclick').includes(type)) {
+          button.classList.add('border-b-2', 'border-indigo-600', 'text-indigo-600');
+          button.classList.remove('border-transparent', 'text-gray-500');
+        } else {
+          button.classList.remove('border-b-2', 'border-indigo-600', 'text-indigo-600');
+          button.classList.add('border-transparent', 'text-gray-500');
+        }
+      });
+    }
+
+    // Timer functions
+    function startTimer() {
+      if (!state.timer.running) {
+        state.timer.running = true;
+        state.timer.interval = setInterval(updateTimer, 1000);
+        startBtn.classList.add('hidden');
+        pauseBtn.classList.remove('hidden');
+      }
+    }
+
+    function pauseTimer() {
+      if (state.timer.running) {
+        state.timer.running = false;
+        clearInterval(state.timer.interval);
+        pauseBtn.classList.add('hidden');
+        startBtn.classList.remove('hidden');
+      }
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      state.timer.minutes = 25;
+      state.timer.seconds = 0;
+      updateTimerDisplay();
+    }
+
+    function setTimer(minutes) {
+      pauseTimer();
+      state.timer.minutes = minutes;
+      state.timer.seconds = 0;
+      updateTimerDisplay();
+    }
+
+    function updateTimer() {
+      if (state.timer.seconds > 0) {
+        state.timer.seconds--;
+      } else if (state.timer.minutes > 0) {
+        state.timer.minutes--;
+        state.timer.seconds = 59;
+      } else {
+        // Timer completed
+        pauseTimer();
+        showTimerCompleteNotification();
+        return;
+      }
+      
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const mins = state.timer.minutes.toString().padStart(2, '0');
+      const secs = state.timer.seconds.toString().padStart(2, '0');
+      timerDisplay.textContent = `${mins}:${secs}`;
+    }
+
+    function showTimerCompleteNotification() {
+      if (chrome.notifications) {
+        chrome.notifications.create('timerComplete', {
+          type: 'basic',
+          iconUrl: 'https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/9ae586b2-3942-47f1-8153-17652e16b4d4.png',
+          title: 'Timer Complete',
+          message: 'Your study session has finished! Take a short break.',
+          buttons: [{ title: 'Start Break Timer' }]
+        });
+      } else {
+        alert('Timer complete! Your study session has finished.');
+      }
+      
+      // Record study time
+      state.studyStats.today += 25;
+      state.studyStats.week += 25;
+      updateStudyStats();
+      saveData();
+    }
+
+    // Task functions
+    function addNewTask() {
+      const name = document.getElementById('task-name').value.trim();
+      const dueDate = document.getElementById('task-due-date').value;
+      const priority = document.getElementById('task-priority').value;
+      const notes = document.getElementById('task-notes').value.trim();
+      
+      if (!name) {
+        alert('Please enter a task name');
+        return;
+      }
+      
+      const newTask = {
+        id: Date.now().toString(),
+        name,
+        dueDate: dueDate || null,
+        priority,
+        notes,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      state.tasks.push(newTask);
+      saveData();
+      hideModal('add-task-modal');
+      renderAllTasks();
+      renderTodayTasks();
+      
+      // Reset form
+      document.getElementById('task-name').value = '';
+      document.getElementById('task-due-date').value = '';
+      document.getElementById('task-priority').value = 'medium';
+      document.getElementById('task-notes').value = '';
+    }
+
+    function toggleTaskCompletion(taskId) {
+      const task = state.tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        saveData();
+        renderAllTasks();
+        renderTodayTasks();
+      }
+    }
+
+    function deleteTask(taskId) {
+      state.tasks = state.tasks.filter(t => t.id !== taskId);
+      saveData();
+      renderAllTasks();
+      renderTodayTasks();
+    }
+
+    function renderAllTasks() {
+      const container = document.getElementById('tasks-list');
+      container.innerHTML = '';
+      
+      const filteredTasks = filterTasksByCriteria(state.tasks);
+      
+      if (filteredTasks.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">No tasks found</p>';
+        return;
+      }
+      
+      filteredTasks.forEach(task => {
+        const taskEl = document.createElement('div');
+        taskEl.className = 'bg-white border border-gray-200 rounded p-3 hover:shadow transition';
+        
+        taskEl.innerHTML = `
+          <div class="flex items-start space-x-2">
+            <button onclick="toggleTaskCompletion('${task.id}')" class="flex-shrink-0 mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ${task.completed ? 'text-green-500' : 'text-gray-300'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
+            
+            <div class="flex-1">
+              <div class="flex justify-between">
+                <p class="${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}">${task.name}</p>
+                <span class="priority-badge priority-${task.priority} text-xs px-2 py-1 rounded-full">${task.priority}</span>
+              </div>
+              
+              ${task.dueDate ? `<p class="text-xs text-gray-500 mt-1">Due: ${formatDate(task.dueDate)}</p>` : ''}
+              ${task.notes ? `<p class="text-xs text-gray-600 mt-1">${task.notes}</p>` : ''}
+            </div>
+            
+            <button onclick="deleteTask('${task.id}')" class="flex-shrink-0 text-gray-400 hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        `;
+        
+        container.appendChild(taskEl);
+      });
+    }
+
+    function renderTodayTasks() {
+      const container = document.getElementById('today-tasks');
+      container.innerHTML = '';
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayTasks = state.tasks.filter(task => task.dueDate === today).slice(0, 3);
+      
+      if (todayTasks.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm py-2">No tasks due today</p>';
+        return;
+      }
+      
+      todayTasks.forEach(task => {
+        const taskEl = document.createElement('div');
+        taskEl.className = 'flex items-center space-x-2 text-sm';
+        
+        taskEl.innerHTML = `
+          <button onclick="toggleTaskCompletion('${task.id}')" class="flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ${task.completed ? 'text-green-500' : 'text-gray-300'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+          <span class="${task.completed ? 'line-through text-gray-400' : 'text-gray-600'}">${task.name}</span>
+        `;
+        
+        container.appendChild(taskEl);
+      });
+    }
+
+    function filterTasks() {
+      renderAllTasks();
+    }
+
+    function filterTasksByCriteria(tasks) {
+      const searchTerm = document.getElementById('task-search').value.toLowerCase();
+      const filterValue = document.getElementById('task-filter').value;
+      
+      let filteredTasks = [...tasks];
+      
+      // Apply search filter
+      if (searchTerm) {
+        filteredTasks = filteredTasks.filter(task => 
+          task.name.toLowerCase().includes(searchTerm) || 
+          (task.notes && task.notes.toLowerCase().includes(searchTerm))
+        );
+      }
+      
+      // Apply type filter
+      switch (filterValue) {
+        case 'today':
+          const today = new Date().toISOString().split('T')[0];
+          filteredTasks = filteredTasks.filter(task => task.dueDate === today);
+          break;
+        case 'week':
+          const weekLater = new Date();
+          weekLater.setDate(weekLater.getDate() + 7);
+          filteredTasks = filteredTasks.filter(task => {
+            if (!task.dueDate) return false;
+            const taskDate = new Date(task.dueDate);
+            return taskDate <= weekLater;
+          });
+          break;
+        case 'completed':
+          filteredTasks = filteredTasks.filter(task => task.completed);
+          break;
+      }
+      
+      return filteredTasks;
+    }
+
+    // Resource functions
+    function addNewResource() {
+      let newResource;
+      
+      switch (state.currentResourceType) {
+        case 'url':
+          const url = document.getElementById('resource-url').value.trim();
+          const title = document.getElementById('resource-url-title').value.trim();
+          const desc = document.getElementById('resource-url-desc').value.trim();
+          const category = document.getElementById('resource-url-category').value.trim();
+          
+          if (!url) {
+            alert('Please enter a URL');
+            return;
+          }
+          
+          newResource = {
+            id: Date.now().toString(),
+            type: 'url',
+            url,
+            title: title || 'Untitled Link',
+            description: desc,
+            category: category || 'General',
+            createdAt: new Date().toISOString()
+          };
+          break;
+          
+        case 'file':
+          const fileName = document.getElementById('resource-file-name').value.trim();
+          
+          if (!fileName) {
+            alert('Please enter a file name');
+            return;
+          }
+          
+          newResource = {
+            id: Date.now().toString(),
+            type: 'file',
+            name: fileName,
+            path: '', // In a real extension, this would be the path to the file
+            createdAt: new Date().toISOString()
+          };
+          break;
+          
+        case 'note':
+          const noteTitle = document.getElementById('resource-note-title').value.trim();
+          const noteContent = document.getElementById('resource-note-content').value.trim();
+          
+          if (!noteTitle) {
+            alert('Please enter a note title');
+            return;
+          }
+          
+          newResource = {
+            id: Date.now().toString(),
+            type: 'note',
+            title: noteTitle,
+            content: noteContent,
+            createdAt: new Date().toISOString()
+          };
+          break;
+      }
+      
+      state.resources.push(newResource);
+      saveData();
+      hideModal('add-resource-modal');
+      renderAllResources();
+      renderRecentResources();
+      
+      // Reset form
+      document.getElementById('resource-url').value = '';
+      document.getElementById('resource-url-title').value = '';
+      document.getElementById('resource-url-desc').value = '';
+      document.getElementById('resource-url-category').value = '';
+      document.getElementById('resource-file-name').value = '';
+      document.getElementById('resource-note-title').value = '';
+      document.getElementById('resource-note-content').value = '';
+    }
+
+    function deleteResource(resourceId) {
+      state.resources = state.resources.filter(r => r.id !== resourceId);
+      saveData();
+      renderAllResources();
+      renderRecentResources();
+    }
+
+    function renderAllResources() {
+      const container = document.getElementById('resources-list');
+      container.innerHTML = '';
+      
+      const filteredResources = filterResourcesByCriteria(state.resources);
+      
+      if (filteredResources.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">No resources found</p>';
+        return;
+      }
+      
+      filteredResources.forEach(resource => {
+        let resourceEl;
+        
+        switch (resource.type) {
+          case 'url':
+            resourceEl = urlResourceTemplate(resource);
+            break;
+            
+          case 'file':
+            resourceEl = fileResourceTemplate(resource);
+            break;
+            
+          case 'note':
+            resourceEl = noteResourceTemplate(resource);
+            break;
+        }
+        
+        container.appendChild(resourceEl);
+      });
+    }
+
+    function urlResourceTemplate(resource) {
+      const elem = document.createElement('div');
+      elem.className = 'bg-white border border-gray-200 rounded p-3 hover:shadow transition';
+      
+      elem.innerHTML = `
+        <div class="flex justify-between">
+          <div class="flex items-start space-x-3 flex-1">
+            <div class="bg-indigo-100 p-2 rounded flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            
+            <div>
+              <h3 class="font-medium text-gray-700">${resource.title}</h3>
+              <a href="${resource.url}" target="_blank" class="text-xs text-indigo-600 hover:underline break-all">${resource.url}</a>
+              ${resource.description ? `<p class="text-xs text-gray-600 mt-1">${resource.description}</p>` : ''}
+              ${resource.category ? `<span class="inline-block mt-1 px-2 py-1 bg-indigo-50 text-indigo-600 text-xs rounded-full">${resource.category}</span>` : ''}
+            </div>
+          </div>
+          
+          <button onclick="deleteResource('${resource.id}')" class="flex-shrink-0 text-gray-400 hover:text-red-500 ml-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      `;
+      
+      return elem;
+    }
+
+    function fileResourceTemplate(resource) {
+      const elem = document.createElement('div');
+      elem.className = 'bg-white border border-gray-200 rounded p-3 hover:shadow transition';
+      
+      elem.innerHTML = `
+        <div class="flex justify-between">
+          <div class="flex items-start space-x-3 flex-1">
+            <div class="bg-purple-100 p-2 rounded flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            
+            <div>
+              <h3 class="font-medium text-gray-700">${resource.name}</h3>
+              <p class="text-xs text-gray-500 mt-1">Uploaded ${formatDate(resource.createdAt)}</p>
+            </div>
+          </div>
+          
+          <button onclick="deleteResource('${resource.id}')" class="flex-shrink-0 text-gray-400 hover:text-red-500 ml-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      `;
+      
+      return elem;
+    }
+
+    function noteResourceTemplate(resource) {
+      const elem = document.createElement('div');
+      elem.className = 'bg-white border border-gray-200 rounded p-3 hover:shadow transition';
+      
+      elem.innerHTML = `
+        <div class="flex justify-between">
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-700">${resource.title}</h3>
+            ${resource.content ? `<p class="text-xs text-gray-600 mt-1">${resource.content}</p>` : ''}
+          </div>
+          
+          <button onclick="deleteResource('${resource.id}')" class="flex-shrink-0 text-gray-400 hover:text-red-500 ml-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      `;
+      
+      return elem;
+    }
+
+    function renderRecentResources() {
+      const container = document.getElementById('recent-resources');
+      container.innerHTML = '';
+      
+      const recentResources = [...state.resources]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 4);
+      
+      if (recentResources.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm py-2 col-span-2">No recent resources</p>';
+        return;
+      }
+      
+      recentResources.forEach(resource => {
+        const resourceEl = document.createElement('div');
+        resourceEl.className = 'bg-white border border-gray-200 rounded p-2 hover:shadow transition';
+        
+        let icon, content;
+        
+        switch (resource.type) {
+          case 'url':
+            icon = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            `;
+            content = `<span class="text-xs text-gray-600 truncate">${resource.title}</span>`;
+            break;
+            
+          case 'file':
+            icon = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            `;
+            content = `<span class="text-xs text-gray-600 truncate">${resource.name}</span>`;
+            break;
+            
+          case 'note':
+            icon = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            `;
+            content = `<span class="text-xs text-gray-600 truncate">${resource.title}</span>`;
+            break;
+        }
+        
+        resourceEl.innerHTML = `
+          <div class="flex items-center space-x-2">
+            ${icon}
+            ${content}
+          </div>
+        `;
+        
+        container.appendChild(resourceEl);
+      });
+    }
+
+    function filterResources() {
+      renderAllResources();
+    }
+
+    function filterResourcesByCriteria(resources) {
+      const searchTerm = document.getElementById('resource-search').value.toLowerCase();
+      const filterValue = document.getElementById('resource-filter').value;
+      
+      let filteredResources = [...resources];
+      
+      // Apply search filter
+      if (searchTerm) {
+        filteredResources = filteredResources.filter(resource => {
+          if (resource.type === 'url') {
+            return (resource.title.toLowerCase().includes(searchTerm) || 
+                    (resource.description && resource.description.toLowerCase().includes(searchTerm)) ||
+                    resource.category.toLowerCase().includes(searchTerm));
+          } else if (resource.type === 'file') {
+            return resource.name.toLowerCase().includes(searchTerm);
+          } else if (resource.type === 'note') {
+            return (resource.title.toLowerCase().includes(searchTerm) || 
+                    (resource.content && resource.content.toLowerCase().includes(searchTerm)));
+          }
+          return false;
+        });
+      }
+      
+      // Apply type filter
+      if (filterValue !== 'all') {
+        filteredResources = filteredResources.filter(resource => resource.type === filterValue);
+      }
+      
+      // Sort by newest first
+      filteredResources.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      return filteredResources;
+    }
+
+    // Notes functions
+    function saveQuickNotes() {
+      state.quickNotes = document.getElementById('quick-notes').value;
+      saveData();
+      
+      // Show confirmation
+      const lastSync = document.getElementById('last-sync');
+      lastSync.textContent = 'Last synced: Just now';
+      lastSync.classList.add('text-indigo-600');
+      setTimeout(() => lastSync.classList.remove('text-indigo-600'), 1000);
+    }
+
+    // Data persistence
+    function loadData() {
+      if (chrome.storage) {
+        chrome.storage.sync.get(['studentBuddyData'], (result) => {
+          if (result.studentBuddyData) {
+            const data = JSON.parse(result.studentBuddyData);
+            
+            state.tasks = data.tasks || [];
+            state.resources = data.resources || [];
+            state.quickNotes = data.quickNotes || '';
+            state.studyStats = data.studyStats || { today: 0, week: 0 };
+            
+            // Update UI with loaded data
+            document.getElementById('quick-notes').value = state.quickNotes;
+            updateStudyStats();
+          }
+        });
+      } else {
+        // Fallback for testing outside Chrome extension
+        const testData = localStorage.getItem('studentBuddyData');
+        if (testData) {
+          const data = JSON.parse(testData);
+          
+          state.tasks = data.tasks || [];
+          state.resources = data.resources || [];
+          state.quickNotes = data.quickNotes || '';
+          state.studyStats = data.studyStats || { today: 0, week: 0 };
+          
+          // Update UI with loaded data
+          document.getElementById('quick-notes').value = state.quickNotes;
+          updateStudyStats();
+        }
+      }
+    }
+
+    function saveData() {
+      const data = {
+        tasks: state.tasks,
+        resources: state.resources,
+        quickNotes: state.quickNotes,
+        studyStats: state.studyStats,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      if (chrome.storage) {
+        chrome.storage.sync.set({ studentBuddyData: JSON.stringify(data) }, () => {
+          console.log('Data saved to Chrome storage');
+        });
+      } else {
+        // Fallback for testing outside Chrome extension
+        localStorage.setItem('studentBuddyData', JSON.stringify(data));
+      }
+    }
+
+    function updateStudyStats() {
+      document.getElementById('today-stats').textContent = `${state.studyStats.today} minutes`;
+      document.getElementById('week-stats').textContent = `${state.studyStats.week} minutes`;
+    }
+
+    // Helper functions
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  </script>
+</body>
+</html>
+
