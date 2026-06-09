@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To-Do List App</title>
+
+  <!--
+  ═══════════════════════════════════════════════
+   FRONT END PROJECT: TO-DO LIST APP
+  ═══════════════════════════════════════════════
+  Concepts covered:
+    1. HTML forms — input, labels, button, submit
+    2. CSS — list reset, button styles, transitions
+    3. JavaScript — DOM manipulation, array methods
+    4. Data model — tasks stored in a JS array
+  ═══════════════════════════════════════════════
+  -->
+
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 3rem 1rem;
+      color: #1a1a2e;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .app-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #1a1a2e;
+    }
+
+    .app-header p {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    /* ── Form ── */
+    /*
+      HTML FORMS concept:
+      The <form> element groups related inputs.
+      Using type="submit" fires the form's "submit" event,
+      which we intercept with event.preventDefault() in JS
+      so the page doesn't reload.
+    */
+    .todo-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+
+    .todo-form input[type="text"] {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 10px;
+      background: #fff;
+      color: #1a1a2e;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .todo-form input[type="text"]:focus {
+      border-color: #6366f1;
+    }
+
+    .todo-form input[type="text"]::placeholder {
+      color: #9ca3af;
+    }
+
+    /*
+      CSS BUTTONS concept:
+      Buttons are styled with padding, border-radius,
+      and a transition so state changes feel smooth.
+      We remove the default outline and provide our own
+      focus ring for accessibility.
+    */
+    .btn-add {
+      padding: 0.65rem 1.1rem;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.3rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      line-height: 1;
+    }
+
+    .btn-add:hover  { background: #4f46e5; }
+    .btn-add:active { transform: scale(0.96); }
+    .btn-add:focus-visible { outline: 3px solid #6366f1; outline-offset: 2px; }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .filter-btn {
+      padding: 5px 14px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 99px;
+      background: #fff;
+      font-size: 0.8rem;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover { border-color: #6366f1; color: #6366f1; }
+
+    .filter-btn.active {
+      background: #eef2ff;
+      border-color: #6366f1;
+      color: #4f46e5;
+      font-weight: 500;
+    }
+
+    /* ── Task list ── */
+    /*
+      CSS LISTS concept:
+      <ul> has default bullets and padding — we reset both.
+      Each <li> is then laid out with flexbox so the
+      checkbox, text, and delete button sit in a row.
+    */
+    .todo-list {
+      list-style: none;        /* remove bullet points */
+      padding: 0;              /* remove default indent */
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      transition: opacity 0.2s, border-color 0.2s;
+      animation: slide-in 0.18s ease;
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .todo-item.completed {
+      opacity: 0.5;
+      border-color: #f3f4f6;
+    }
+
+    /* Custom checkbox */
+    .todo-item input[type="checkbox"] {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #d1d5db;
+      border-radius: 50%;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: #fff;
+      position: relative;
+    }
+
+    .todo-item input[type="checkbox"]:checked {
+      background: #6366f1;
+      border-color: #6366f1;
+    }
+
+    .todo-item input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 6px;
+      width: 5px; height: 9px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      line-height: 1.4;
+      word-break: break-word;
+      transition: color 0.2s, text-decoration 0.2s;
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      color: #d1d5db;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px;
+      border-radius: 6px;
+      line-height: 1;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+    }
+
+    .todo-item:hover .btn-delete { opacity: 1; }
+    .btn-delete:hover { color: #ef4444; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      display: block;
+      opacity: 0.35;
+    }
+
+    /* ── Footer ── */
+    .app-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      min-height: 24px;
+    }
+
+    .btn-clear {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 0;
+      transition: color 0.15s;
+    }
+
+    .btn-clear:hover { color: #ef4444; }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <header class="app-header">
+      <h1>My tasks</h1>
+      <p id="subtitle">0 tasks remaining</p>
+    </header>
+
+    <!--
+    ════════════════════════════════
+    HTML FORMS
+    ════════════════════════════════
+    - <form> groups related controls and fires a "submit" event
+    - <label> improves accessibility (for="..." links to input id)
+    - type="text" accepts free text
+    - type="submit" triggers form submission
+    - We use JS to intercept submit and prevent page reload
+    ════════════════════════════════
+    -->
+    <form class="todo-form" id="todo-form" aria-label="Add a task">
+      <label for="task-input" style="display:none">New task</label>
+      <input
+        type="text"
+        id="task-input"
+        placeholder="Add a new task…"
+        autocomplete="off"
+        maxlength="200"
+        required
+        aria-required="true"
+      />
+      <button type="submit" class="btn-add" aria-label="Add task">+</button>
+    </form>
+
+    <!-- Filter buttons -->
+    <div class="filters" role="group" aria-label="Filter tasks">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn"        data-filter="active">Active</button>
+      <button class="filter-btn"        data-filter="done">Done</button>
+    </div>
+
+    <!--
+    ════════════════════════════════
+    STYLING LISTS
+    ════════════════════════════════
+    <ul> holds our tasks. JS will inject <li> elements here.
+    CSS resets list-style and padding, then flexbox
+    controls the layout of each row.
+    ════════════════════════════════
+    -->
+    <ul class="todo-list" id="todo-list" aria-label="Task list" aria-live="polite"></ul>
+
+    <!-- Shown when no tasks match the current filter -->
+    <div class="empty-state" id="empty-state" aria-live="polite">
+      <span class="empty-icon">☑</span>
+      No tasks yet — add one above
+    </div>
+
+    <footer class="app-footer">
+      <span id="count-label"></span>
+      <button class="btn-clear" id="btn-clear" style="display:none">Clear completed</button>
+    </footer>
+
+  </div>
+
+  <script>
+    /*
+    ════════════════════════════════════════════════
+    DATA MODEL — storing tasks in an array
+    ════════════════════════════════════════════════
+    Each task is an object: { id, text, done }
+    All UI is derived from this single source of truth.
+    Mutate the array, then call render() to sync the DOM.
+    ════════════════════════════════════════════════
+    */
+    let tasks = [
+      { id: 1, text: 'Review project proposal',      done: false },
+      { id: 2, text: 'Schedule team standup',         done: true  },
+      { id: 3, text: 'Update README documentation',   done: false },
+    ];
+
+    let filter  = 'all';   // 'all' | 'active' | 'done'
+    let nextId  = 4;
+
+    /* ── Selectors ── */
+    const form       = document.getElementById('todo-form');
+    const input      = document.getElementById('task-input');
+    const list       = document.getElementById('todo-list');
+    const emptyState = document.getElementById('empty-state');
+    const subtitle   = document.getElementById('subtitle');
+    const countLabel = document.getElementById('count-label');
+    const btnClear   = document.getElementById('btn-clear');
+
+    /*
+    ════════════════════════════════════════════════
+    DOM MANIPULATION — render()
+    ════════════════════════════════════════════════
+    Instead of scattered DOM updates, we re-render
+    the whole list from the tasks array every time
+    state changes. Simple, predictable, beginner-friendly.
+    ════════════════════════════════════════════════
+    */
+    function render() {
+      /* 1. Filter tasks according to current view */
+      const visible = tasks.filter(t => {
+        if (filter === 'active') return !t.done;
+        if (filter === 'done')   return  t.done;
+        return true;
+      });
+
+      /* 2. Clear the current list in the DOM */
+      list.innerHTML = '';
+
+      /* 3. Build a <li> for every visible task */
+      visible.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'todo-item' + (task.done ? ' completed' : '');
+        li.dataset.id = task.id;
+
+        /*
+          DOM MANIPULATION — createElement / innerHTML
+          We build each row as a template string and inject it.
+          The checkbox's "checked" attribute maps directly to task.done.
+        */
+        li.innerHTML = `
+          <input
+            type="checkbox"
+            ${task.done ? 'checked' : ''}
+            aria-label="Mark '${escapeHtml(task.text)}' as ${task.done ? 'incomplete' : 'complete'}"
+          />
+          <span class="todo-text">${escapeHtml(task.text)}</span>
+          <button class="btn-delete" aria-label="Delete '${escapeHtml(task.text)}'">✕</button>
+        `;
+
+        list.appendChild(li);
+      });
+
+      /* 4. Show/hide empty state */
+      emptyState.style.display = visible.length === 0 ? 'block' : 'none';
+      list.style.display       = visible.length === 0 ? 'none'  : '';
+
+      /* 5. Update counters */
+      const remaining = tasks.filter(t => !t.done).length;
+      subtitle.textContent  = `${remaining} task${remaining !== 1 ? 's' : ''} remaining`;
+      countLabel.textContent = `${remaining} left`;
+
+      /* 6. Show "Clear completed" only when there are done tasks */
+      const hasDone = tasks.some(t => t.done);
+      btnClear.style.display = hasDone ? 'inline' : 'none';
+    }
+
+
+    /*
+    ════════════════════════════════════════════════
+    EVENT HANDLING
+    ════════════════════════════════════════════════
+    */
+
+    /* Add task — intercept the form's submit event */
+    form.addEventListener('submit', function(event) {
+      /*
+        HTML FORMS concept:
+        Without preventDefault(), submitting a form
+        causes a full page reload. We stop that here
+        and handle the data ourselves in JavaScript.
+      */
+      event.preventDefault();
+
+      const text = input.value.trim();
+      if (!text) return;               // ignore blank submissions
+
+      /*
+        ARRAY MANIPULATION — unshift()
+        unshift() adds a new item at the START of the array
+        (so new tasks appear at the top of the list).
+      */
+      tasks.unshift({ id: nextId++, text, done: false });
+      input.value = '';                // clear the field
+      filter = 'all';                  // switch to All view so the new task is visible
+      setFilter('all');
+    });
+
+    /*
+      Event delegation:
+      Instead of attaching click listeners to every item,
+      we listen on the parent <ul> and check what was clicked.
+      This works even for items added dynamically.
+    */
+    list.addEventListener('click', function(event) {
+      const li = event.target.closest('.todo-item');
+      if (!li) return;
+
+      const id = Number(li.dataset.id);
+
+      if (event.target.type === 'checkbox') {
+        /*
+          ARRAY MANIPULATION — find()
+          Locate the task object in our array by id,
+          then flip its done flag.
+        */
+        const task = tasks.find(t => t.id === id);
+        if (task) task.done = !task.done;
+        render();
+      }
+
+      if (event.target.classList.contains('btn-delete')) {
+        /*
+          ARRAY MANIPULATION — filter()
+          Return a new array that excludes the deleted task.
+          The original tasks array is replaced by the new one.
+        */
+        tasks = tasks.filter(t => t.id !== id);
+        render();
+      }
+    });
+
+    /* Filter buttons */
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+    });
+
+    function setFilter(f) {
+      filter = f;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === f);
+      });
+      render();
+    }
+
+    /* Clear all completed tasks */
+    btnClear.addEventListener('click', function() {
+      tasks = tasks.filter(t => !t.done);
+      render();
+    });
+
+    /* ── Utility ── */
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* Initial render */
+    render();
+  </script>
+</body>
+</html>

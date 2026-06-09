@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator</title>
+
+  <!--
+  ═══════════════════════════════════════════════
+   FRONT END PROJECT: CALCULATOR
+  ═══════════════════════════════════════════════
+  Concepts covered:
+    1. CSS Grid  — button layout with grid-template
+    2. Event Listeners — capturing button clicks
+    3. Calculation Logic — parsing and evaluating input
+    4. UI Polish — hover effects, transitions, animations
+  ═══════════════════════════════════════════════
+  -->
+
+  <style>
+
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /*
+        Background: subtle dark gradient so the calculator
+        floats cleanly against a neutral stage.
+      */
+      background: #0f0f13;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+
+    /* ── Calculator shell ── */
+    .calculator {
+      width: 320px;
+      background: #1c1c24;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.07),
+        0 32px 64px rgba(0,0,0,0.6);
+    }
+
+    /* ── Display ── */
+    .display {
+      background: #13131a;
+      border-radius: 14px;
+      padding: 20px 20px 14px;
+      margin-bottom: 20px;
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-end;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* Expression preview — shows the running expression */
+    .display-expression {
+      font-size: 0.78rem;
+      color: #5a5a72;
+      min-height: 18px;
+      letter-spacing: 0.5px;
+      transition: opacity 0.2s;
+      word-break: break-all;
+      text-align: right;
+    }
+
+    /* Main number — the current value or result */
+    .display-value {
+      font-size: 2.6rem;
+      color: #f0f0ff;
+      font-weight: 300;
+      letter-spacing: -1px;
+      word-break: break-all;
+      text-align: right;
+      /*
+        UI POLISH — transition:
+        When the number changes we trigger a tiny CSS class
+        that plays this animation, giving visual feedback.
+      */
+      transition: color 0.15s;
+    }
+
+    .display-value.flash {
+      animation: result-flash 0.25s ease;
+    }
+
+    @keyframes result-flash {
+      0%   { color: #f0f0ff; }
+      40%  { color: #a78bfa; }
+      100% { color: #f0f0ff; }
+    }
+
+    /*
+    ════════════════════════════════════════════════
+    CSS GRID — button layout
+    ════════════════════════════════════════════════
+    display: grid turns the container into a grid.
+
+    grid-template-columns: repeat(4, 1fr)
+      → 4 equal-width columns ("1 fraction unit" each)
+
+    gap: controls gutters between rows AND columns.
+
+    A button can span multiple columns with:
+      grid-column: span 2;
+    which is how the "0" key takes up two columns.
+    ════════════════════════════════════════════════
+    */
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);  /* 4 equal columns */
+      gap: 10px;                               /* gutter between every cell */
+    }
+
+    /* ── Button base style ── */
+    .btn {
+      height: 64px;
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 1.1rem;
+      font-weight: 400;
+      cursor: pointer;
+      user-select: none;
+      /*
+        UI POLISH — transitions:
+        All visual properties (background, color, transform, box-shadow)
+        animate smoothly instead of snapping between states.
+      */
+      transition: background 0.12s, color 0.12s, transform 0.08s, box-shadow 0.12s;
+      position: relative;
+      outline: none;
+    }
+
+    /* Pressed feedback — scales the button down slightly */
+    .btn:active {
+      transform: scale(0.93);
+    }
+
+    /* Focus ring for keyboard navigation */
+    .btn:focus-visible {
+      box-shadow: 0 0 0 3px rgba(167,139,250,0.5);
+    }
+
+    /*
+      Button variants:
+      Each category of key has its own color token
+      so the keyboard is immediately readable.
+    */
+
+    /* Number keys — neutral dark */
+    .btn-num {
+      background: #2a2a36;
+      color: #e8e8f4;
+    }
+    .btn-num:hover {
+      background: #333340;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* Operator keys (+, -, ×, ÷) — soft violet accent */
+    .btn-op {
+      background: #2d2545;
+      color: #c4b5fd;
+    }
+    .btn-op:hover {
+      background: #3a3056;
+      box-shadow: 0 4px 12px rgba(124,58,237,0.25);
+    }
+
+    /* Active operator — highlight which op is pending */
+    .btn-op.active-op {
+      background: #7c3aed;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(124,58,237,0.45);
+    }
+
+    /* Utility keys (AC, +/-, %) — mid-gray */
+    .btn-util {
+      background: #252530;
+      color: #9090aa;
+    }
+    .btn-util:hover {
+      background: #2e2e3a;
+      color: #c0c0d8;
+    }
+
+    /* Equals key — prominent violet fill */
+    .btn-eq {
+      background: #7c3aed;
+      color: #fff;
+    }
+    .btn-eq:hover {
+      background: #6d28d9;
+      box-shadow: 0 6px 20px rgba(124,58,237,0.5);
+    }
+
+    /*
+      CSS GRID — spanning columns:
+      grid-column: span 2 makes this button fill
+      two grid cells, giving "0" its wide shape.
+    */
+    .btn-wide {
+      grid-column: span 2;
+      text-align: left;
+      padding-left: 24px;
+    }
+
+    /* Error state — flashes red on invalid input */
+    .display-value.error {
+      color: #f87171;
+      font-size: 1.6rem;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="calculator" role="application" aria-label="Calculator">
+
+    <!-- Display -->
+    <div class="display">
+      <!-- Running expression (e.g. "12 + 5 ×") -->
+      <div class="display-expression" id="expression" aria-live="polite"></div>
+      <!-- Current number / result -->
+      <div class="display-value" id="display" aria-live="assertive" aria-atomic="true">0</div>
+    </div>
+
+    <!--
+    ════════════════════════════════════════════════
+    CSS GRID in action — the button grid
+    ════════════════════════════════════════════════
+    Each <button> sits in one grid cell (1fr wide).
+    data-* attributes carry each button's meaning into JS
+    without needing extra class checks.
+      data-type: "num" | "op" | "util" | "eq"
+      data-value: the character this key represents
+    ════════════════════════════════════════════════
+    -->
+    <div class="buttons">
+
+      <!-- Row 1 — utility -->
+      <button class="btn btn-util" data-type="util" data-value="clear"    aria-label="Clear">AC</button>
+      <button class="btn btn-util" data-type="util" data-value="sign"     aria-label="Toggle sign">+/−</button>
+      <button class="btn btn-util" data-type="util" data-value="percent"  aria-label="Percent">%</button>
+      <button class="btn btn-op"   data-type="op"   data-value="÷"        aria-label="Divide">÷</button>
+
+      <!-- Row 2 -->
+      <button class="btn btn-num"  data-type="num"  data-value="7">7</button>
+      <button class="btn btn-num"  data-type="num"  data-value="8">8</button>
+      <button class="btn btn-num"  data-type="num"  data-value="9">9</button>
+      <button class="btn btn-op"   data-type="op"   data-value="×"        aria-label="Multiply">×</button>
+
+      <!-- Row 3 -->
+      <button class="btn btn-num"  data-type="num"  data-value="4">4</button>
+      <button class="btn btn-num"  data-type="num"  data-value="5">5</button>
+      <button class="btn btn-num"  data-type="num"  data-value="6">6</button>
+      <button class="btn btn-op"   data-type="op"   data-value="−"        aria-label="Subtract">−</button>
+
+      <!-- Row 4 -->
+      <button class="btn btn-num"  data-type="num"  data-value="1">1</button>
+      <button class="btn btn-num"  data-type="num"  data-value="2">2</button>
+      <button class="btn btn-num"  data-type="num"  data-value="3">3</button>
+      <button class="btn btn-op"   data-type="op"   data-value="+"        aria-label="Add">+</button>
+
+      <!-- Row 5 — note btn-wide spans 2 columns -->
+      <button class="btn btn-num btn-wide" data-type="num" data-value="0">0</button>
+      <button class="btn btn-num"  data-type="num"  data-value=".">.</button>
+      <button class="btn btn-eq"   data-type="eq"   data-value="="        aria-label="Equals">=</button>
+
+    </div>
+  </div>
+
+  <script>
+    /*
+    ════════════════════════════════════════════════
+    CALCULATOR STATE
+    ════════════════════════════════════════════════
+    We track five pieces of state:
+      current    — the number currently being typed
+      previous   — the number before an operator was pressed
+      operator   — the pending operator (+, −, ×, ÷)
+      shouldReset — whether the next digit press starts fresh
+      expression — the string shown in the preview line
+    ════════════════════════════════════════════════
+    */
+    let current     = '0';
+    let previous    = null;
+    let operator    = null;
+    let shouldReset = false;
+    let expression  = '';
+
+    const display    = document.getElementById('display');
+    const exprLine   = document.getElementById('expression');
+    const opButtons  = document.querySelectorAll('.btn-op');
+
+    /* ── Update the screen ── */
+    function updateDisplay(value) {
+      /*
+        Format large numbers with locale commas (1,000,000)
+        but keep decimals intact and don't format mid-typing.
+      */
+      const num = parseFloat(value);
+      if (!isNaN(num) && !value.endsWith('.') && !value.endsWith('.0')) {
+        const [intPart, decPart] = value.split('.');
+        const formatted = parseInt(intPart, 10).toLocaleString();
+        display.textContent = decPart !== undefined ? `${formatted}.${decPart}` : formatted;
+      } else {
+        display.textContent = value;
+      }
+      display.className = 'display-value';   /* reset error/flash classes */
+    }
+
+    function updateExpression(str) {
+      exprLine.textContent = str;
+    }
+
+    /* Highlight the active operator button */
+    function highlightOp(op) {
+      opButtons.forEach(btn => {
+        btn.classList.toggle('active-op', btn.dataset.value === op);
+      });
+    }
+
+    /* Flash the result value on equals */
+    function flashResult() {
+      display.classList.remove('flash');
+      void display.offsetWidth;             /* force reflow to restart animation */
+      display.classList.add('flash');
+    }
+
+
+    /*
+    ════════════════════════════════════════════════
+    CALCULATION LOGIC
+    ════════════════════════════════════════════════
+    All arithmetic lives in one pure function.
+    It takes two numbers and an operator string,
+    returns a number. No side effects here — easy to test.
+    ════════════════════════════════════════════════
+    */
+    function calculate(a, b, op) {
+      const numA = parseFloat(a);
+      const numB = parseFloat(b);
+
+      switch (op) {
+        case '+': return numA + numB;
+        case '−': return numA - numB;
+        case '×': return numA * numB;
+        case '÷':
+          if (numB === 0) return 'Cannot divide by 0';
+          return numA / numB;
+        default:  return numB;
+      }
+    }
+
+    /* Round floating-point noise: 0.1 + 0.2 → 0.3 (not 0.30000000000000004) */
+    function cleanNumber(n) {
+      if (typeof n !== 'number') return n;
+      return parseFloat(n.toPrecision(12));
+    }
+
+
+    /*
+    ════════════════════════════════════════════════
+    BUTTON HANDLERS
+    ════════════════════════════════════════════════
+    */
+
+    function handleNumber(value) {
+      if (shouldReset) {
+        current     = value === '.' ? '0.' : value;
+        shouldReset = false;
+      } else {
+        /* Prevent multiple decimal points */
+        if (value === '.' && current.includes('.')) return;
+        /* Limit to 10 digits */
+        if (current.replace(/[^0-9]/g, '').length >= 10 && value !== '.') return;
+        current = current === '0' && value !== '.' ? value : current + value;
+      }
+      updateDisplay(current);
+    }
+
+    function handleOperator(op) {
+      /* If there's a pending calculation, resolve it first */
+      if (operator && !shouldReset) {
+        const result = cleanNumber(calculate(previous, current, operator));
+        if (typeof result === 'string') { showError(result); return; }
+        current = String(result);
+        updateDisplay(current);
+      }
+      previous    = current;
+      operator    = op;
+      shouldReset = true;
+      expression  = `${previous} ${op}`;
+      updateExpression(expression);
+      highlightOp(op);
+    }
+
+    function handleEquals() {
+      if (!operator || !previous) return;
+
+      const a      = previous;
+      const b      = current;
+      const op     = operator;
+      const result = cleanNumber(calculate(a, b, op));
+
+      expression = `${a} ${op} ${b} =`;
+      updateExpression(expression);
+
+      if (typeof result === 'string') {
+        showError(result);
+      } else {
+        current     = String(result);
+        updateDisplay(current);
+        flashResult();
+      }
+
+      operator    = null;
+      previous    = null;
+      shouldReset = true;
+      highlightOp(null);
+    }
+
+    function handleUtility(value) {
+      switch (value) {
+        case 'clear':
+          /* AC — reset everything */
+          current     = '0';
+          previous    = null;
+          operator    = null;
+          shouldReset = false;
+          expression  = '';
+          updateDisplay('0');
+          updateExpression('');
+          highlightOp(null);
+          break;
+
+        case 'sign':
+          /* Flip positive ↔ negative */
+          if (current === '0') return;
+          current = current.startsWith('-') ? current.slice(1) : '-' + current;
+          updateDisplay(current);
+          break;
+
+        case 'percent':
+          /* Divide by 100 (e.g. 50 → 0.5) */
+          current = String(cleanNumber(parseFloat(current) / 100));
+          updateDisplay(current);
+          break;
+      }
+    }
+
+    function showError(msg) {
+      display.textContent = msg;
+      display.className   = 'display-value error';
+      current             = '0';
+      previous            = null;
+      operator            = null;
+      shouldReset         = true;
+      highlightOp(null);
+    }
+
+
+    /*
+    ════════════════════════════════════════════════
+    EVENT LISTENERS — capturing button clicks
+    ════════════════════════════════════════════════
+    We use ONE listener on the parent .buttons div
+    (event delegation) rather than attaching a listener
+    to every single button. The event bubbles up from
+    whichever button was clicked, and we inspect
+    event.target to see which button it was.
+
+    This is more efficient and works for any buttons
+    added to the grid later.
+    ════════════════════════════════════════════════
+    */
+    document.querySelector('.buttons').addEventListener('click', function(event) {
+      /* Find the closest <button> — handles clicks on child elements too */
+      const btn = event.target.closest('button[data-type]');
+      if (!btn) return;                        /* click was on the grid gap, ignore */
+
+      const type  = btn.dataset.type;
+      const value = btn.dataset.value;
+
+      /* Route to the correct handler based on button type */
+      switch (type) {
+        case 'num':  handleNumber(value);   break;
+        case 'op':   handleOperator(value); break;
+        case 'eq':   handleEquals();        break;
+        case 'util': handleUtility(value);  break;
+      }
+    });
+
+    /*
+    ════════════════════════════════════════════════
+    KEYBOARD SUPPORT
+    ════════════════════════════════════════════════
+    keydown on the document maps physical keys to
+    the same handlers used by button clicks — one
+    source of logic, two input methods.
+    ════════════════════════════════════════════════
+    */
+    document.addEventListener('keydown', function(event) {
+      const key = event.key;
+
+      if ('0123456789.'.includes(key))          handleNumber(key);
+      else if (key === '+')                      handleOperator('+');
+      else if (key === '-')                      handleOperator('−');
+      else if (key === '*')                      handleOperator('×');
+      else if (key === '/')                    { event.preventDefault(); handleOperator('÷'); }
+      else if (key === 'Enter' || key === '=')   handleEquals();
+      else if (key === 'Escape')                 handleUtility('clear');
+      else if (key === '%')                      handleUtility('percent');
+      else if (key === 'Backspace') {
+        /* Delete the last character typed */
+        if (current.length > 1) {
+          current = current.slice(0, -1);
+        } else {
+          current = '0';
+        }
+        updateDisplay(current);
+      }
+    });
+
+    /* Initial render */
+    updateDisplay('0');
+  </script>
+</body>
+</html>
